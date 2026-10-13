@@ -24,7 +24,14 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      # GitHub's Ubuntu runner ships with Android SDK command-line tools.
+      # Avoid setup-android here: its external bootstrap can fail even when
+      # the already-installed SDK is fully usable.
+      - name: Show Android toolchain
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          command -v sdkmanager
+          sdkmanager --version
       - name: Install dependencies and test JavaScript
         run: |
           npm ci
