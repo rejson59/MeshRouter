@@ -72,6 +72,24 @@ public class ChunkAssemblerTest {
         }
     }
 
+    @Test public void repeatedFailoverMaintainsExactFileAcrossThreadSchedules() throws Exception {
+        // The old CI intermittently failed in the JVM step. Exercise many
+        // different worker schedules; a missing or duplicated chunk must fail.
+        for (int iteration = 0; iteration < 40; iteration++) {
+            byte[] source = source(2 * RangePlan.CHUNK_BYTES + 29);
+            byte[] result = new byte[source.length];
+            List<ChunkAssembler.Worker> workers = Arrays.asList(
+                new ChunkAssembler.Worker("offline", -1, chunk -> { throw new IOException("offline"); }),
+                new ChunkAssembler.Worker("limited", RangePlan.CHUNK_BYTES, chunk -> slice(source, chunk)),
+                new ChunkAssembler.Worker("backup", -1, chunk -> slice(source, chunk))
+            );
+            ChunkAssembler.download(source.length, workers,
+                (offset, bytes) -> System.arraycopy(bytes, 0, result, (int) offset, bytes.length),
+                (worker, count) -> {}, () -> false, 10000);
+            assertArrayEquals("schedule " + iteration, source, result);
+        }
+    }
+
     @Test public void cancellationIsNotSuccess() {
         List<ChunkAssembler.Worker> workers = Arrays.asList(
             new ChunkAssembler.Worker("a", -1, chunk -> new byte[chunk.length])
