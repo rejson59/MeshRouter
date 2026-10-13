@@ -1,6 +1,6 @@
 {
   "name": "meshrouter",
-  "version": "0.2.0-preview",
+  "version": "0.2.1-preview",
   "description": "MeshRouter — Android LAN mesh and opt-in parallel cellular file downloads; separate visual web demo.",
   "type": "module",
   "private": true,

@@ -8,6 +8,8 @@ MeshRouter to **prototyp aplikacji Android** (API 26+, Android 8.0+) i osobne, w
 
 Strona z opisem aplikacji, linkiem do aktualnego APK i **osadzonym interaktywnym demo** jest gotowa do podglądu (`npm run build:site && npm run site:preview`). Docelowy adres po aktywowaniu GitHub Pages to [**rejson59.github.io/MeshRouter/**](https://rejson59.github.io/MeshRouter/), a pełne demo będzie pod [`/demo/`](https://rejson59.github.io/MeshRouter/demo/). Strona jest statyczna; demo tworzy wyłącznie symulowane urządzenia, pomiary i — po kliknięciu — przykładowy postęp transferu. **Nie pobiera przy tym pliku.** Tylko instalowana aplikacja Android korzysta z natywnych sieci i pobierania plików. W ramce pulpit demo otwiera się automatycznie; samodzielnie otwarta wersja startuje od ekranu „Utwórz/Dołącz”.
 
+W 0.2.1 naprawiono wyścig w przydziale początkowych fragmentów: wszystkie wybrane łącza otrzymują własny fragment **zanim** którykolwiek pracownik zacznie pobieranie. Dzięki temu szybki pierwszy węzeł nie zabiera pracy pozostałym. Na stronie dodano jawnie pokazową animację tego procesu; wersja przeglądarkowa nadal nie pobiera plików.
+
 ## Co działa w APK
 
 - Host: `WifiManager.startLocalOnlyHotspot()`; lokalny serwer HTTP na porcie `8787` (chronione tokenem endpointy /hello, /heartbeat, /state, /leave) oraz informacyjna strona pod `/`.
@@ -34,7 +36,7 @@ Przed deklaracją działania na konkretnych modelach Androida wykonaj [plan test
 
 Wymaga Androida 8.0+ i działającego Wi‑Fi; do pomiaru i testu przekazania potrzebne są aktywne dane komórkowe. Wersja debug jest podpisana **kluczem debugowym**, nadaje się do testów, nie do wydania w Google Play.
 
-1. Pobierz [MeshRouter-debug.apk — 0.2.0-preview, wspólne pobieranie](https://github.com/rejson59/MeshRouter/releases/download/v0.2.0-preview/MeshRouter-debug.apk). [Starsza wersja 0.1.0](https://github.com/rejson59/MeshRouter/releases/tag/v0.1.0-preview) nie ma funkcji pobierania pliku. Alternatywnie: [Actions → Build Android APK](https://github.com/rejson59/MeshRouter/actions/workflows/android-apk.yml) → zielony przebieg → **Artifacts** → `MeshRouter-debug-apk` (rozpakuj ZIP).
+1. Pobierz [MeshRouter-debug.apk — 0.2.1-preview, wspólne pobieranie](https://github.com/rejson59/MeshRouter/releases/download/v0.2.1-preview/MeshRouter-debug.apk). [Starsza wersja 0.1.0](https://github.com/rejson59/MeshRouter/releases/tag/v0.1.0-preview) nie ma funkcji pobierania pliku. Alternatywnie: [Actions → Build Android APK](https://github.com/rejson59/MeshRouter/actions/workflows/android-apk.yml) → zielony przebieg → **Artifacts** → `MeshRouter-debug-apk` (rozpakuj ZIP).
 2. Zainstaluj APK na obu telefonach (włącz zezwolenie „Instaluj nieznane aplikacje” dla użytej przeglądarki/menedżera plików). To **build debug** z tymczasowym kluczem CI: instalacja nowej wersji na starej prawdopodobnie wymaga odinstalowania poprzedniego APK i usuwa dane aplikacji. Zapisane w publicznych Pobranych pliki możesz zachować osobno.
 3. Na telefonie A: **Utwórz** → uprawnienia Wi‑Fi/lokalizacji → **Udostępnij zaproszenie**.
 4. Na telefonie B: **Dołącz** → **Wklej ze schowka** albo wklej całe `MR1:…` → potwierdź systemowy monit połączenia Wi‑Fi. Telefony muszą być w zasięgu; na niektórych modelach trzeba włączyć Usługi lokalizacji, Wi‑Fi i dane komórkowe w ustawieniach.

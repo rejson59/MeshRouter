@@ -101,12 +101,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           mv apk/app-debug.apk apk/MeshRouter-debug.apk
-          if gh release view v0.2.0-preview >/dev/null 2>&1; then
-            gh release upload v0.2.0-preview apk/MeshRouter-debug.apk --clobber
-          else
-            gh release create v0.2.0-preview apk/MeshRouter-debug.apk \
-              --target "$GITHUB_SHA" \
-              --title 'MeshRouter 0.2.0 — wspólne pobieranie (testowy APK)' \
-              --notes 'Android 8.0+. Pobieranie publicznych plików HTTPS Range (do 32 MiB) w częściach przez osobne łącza komórkowe telefonów, składanie i SHA-256 u hosta. Każdy uczestnik, również host, włącza osobną zgodę i limit bajtów treści (bez narzutu TLS/operatora). Ta funkcja nie jest ogólnosystemowym bondingiem/VPN. Automatyczne testy przeszły, ale połączenie na dwóch fizycznych telefonach i zgodność serwerów Range nie zostały jeszcze potwierdzone. APK debug ma tymczasowy podpis; aktualizacja poprzedniego buildu może wymagać odinstalowania starego.' \
-              --prerelease
+          if gh release view v0.2.1-preview >/dev/null 2>&1; then
+            echo '::error::Release v0.2.1-preview already exists; do not replace a published APK.'
+            exit 1
           fi
+          gh release create v0.2.1-preview apk/MeshRouter-debug.apk \
+            --target "$GITHUB_SHA" \
+            --title 'MeshRouter 0.2.1 — równoległe fragmenty (testowy APK)' \
+            --notes 'Android 8.0+. Poprawiono wyścig przy przydziale początkowych fragmentów: każde wybrane łącze otrzymuje fragment przed startem wątków. Pobieranie publicznych plików HTTPS Range (do 32 MiB) przez komórkowe łącza telefonów, składanie i SHA-256 u hosta. Każdy użyty telefon, również host, włącza osobną zgodę i limit bajtów treści (bez narzutu TLS/operatora). To nie jest ogólnosystemowy bonding/VPN. Automatyczne testy przeszły, lecz transfer na dwóch fizycznych telefonach wciąż wymaga sprawdzenia. APK debug ma tymczasowy podpis; przed instalacją nowego buildu może być konieczne odinstalowanie starego.' \
+            --prerelease
