@@ -633,10 +633,13 @@ public class MeshBridgePlugin extends Plugin {
                         ByteArrayOutputStream data = new ByteArrayOutputStream(PROBE_BYTES);
                         try (InputStream in = conn.getInputStream()) {
                             byte[] buffer = new byte[8192];
-                            int n;
-                            while (data.size() < PROBE_BYTES && (n = in.read(buffer, 0,
-                                Math.min(buffer.length, PROBE_BYTES - data.size()))) >= 0) {
+                            while (data.size() < PROBE_BYTES) {
                                 if (!allowed.getAsBoolean()) throw new IOException("Zgoda na przekazywanie została wycofana.");
+                                long available = Math.max(0, relayBudgetBytes - relaySpentBytes.get());
+                                if (available == 0) throw new IOException("Limit danych został wykorzystany.");
+                                int limit = (int) Math.min(Math.min(buffer.length, PROBE_BYTES - data.size()), available);
+                                int n = in.read(buffer, 0, limit);
+                                if (n < 0) break;
                                 relaySpentBytes.addAndGet(n);
                                 data.write(buffer, 0, n);
                             }

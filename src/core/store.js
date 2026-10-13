@@ -138,6 +138,7 @@ export const store = {
         this.combined = 0;
         this.download = null;
         this.relayEnabled = false;
+        this.relayRemainingBytes = 0;
         this.emit();
       }
       return;

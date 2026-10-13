@@ -1,6 +1,6 @@
 # MeshRouter
 
-MeshRouter to **prototyp działającej aplikacji Android** (API 26+, Android 8.0+) i osobne, wyraźnie oznaczone **demo w przeglądarce**. Android tworzy lokalną sieć Wi‑Fi, inne telefony dołączają przez zaproszenie, wymieniają prawdziwe dane urządzeń i mogą wykonać test przesłania danych komórkowych jednego telefonu do hosta. Interfejs ma tryb ciemny/jasny i algorytm wyboru sugerowanego przekaźnika na podstawie pomiarów oraz baterii.
+MeshRouter to **prototyp aplikacji Android** (API 26+, Android 8.0+) i osobne, wyraźnie oznaczone **demo w przeglądarce**. Android tworzy lokalną sieć Wi‑Fi, telefony dołączają przez zaproszenie, wymieniają prawdziwe dane urządzeń, testują łącza i — za zgodą każdego użytego telefonu — mogą pobrać plik w częściach przez niezależne połączenia komórkowe. Host składa, oblicza SHA-256 i zapisuje plik. Interfejs ma tryb ciemny/jasny i algorytm wyboru sugerowanego przekaźnika na podstawie pomiarów oraz baterii. **Nową funkcję przetestowano automatycznie, ale nie potwierdzono jeszcze na dwóch fizycznych telefonach.**
 
 > **Granica techniczna:** To **nie** jest ogólnosystemowy router agregujący internet wielu telefonów. Android `LocalOnlyHotspot` tworzy lokalny hotspot WPA2 z SSID/hasłem nadawanym przez system, **bez** automatycznego udostępniania internetu. Wybrany przekaźnik jest rekomendacją aplikacji, nie przełączeniem fizycznego hosta Wi‑Fi. Wskaźnik w APK pokazuje **sumę indywidualnych pomiarów przepustowości**, nie realną prędkość jednego połączenia połączonego z wielu łączy. Demo w przeglądarce używa danych symulowanych, nie tworzy żadnej sieci. iOS: tylko demo webowe (API hotspotu jest zablokowane dla zwykłych aplikacji iOS).
 
@@ -11,8 +11,20 @@ MeshRouter to **prototyp działającej aplikacji Android** (API 26+, Android 8.0
 - Zaproszenie `MR1:`: udostępnienie SSID, hasła WPA2, IP hosta i losowego tokenu tylko przez wybrany przez użytkownika kanał (np. wiadomość). Traktuj jak hasło; nie publikuj.
 - Prawdziwa lista telefonów: nazwa, model, operator, bateria, poziom Wi‑Fi i wyniki indywidualnych pomiarów. Host usuwa urządzenia, które nie zgłaszały się przez 15 s.
 - Ręczny test łącza **komórkowego** danego telefonu (~1 MB pobierania + do 256 KB wysyłania, endpointy Cloudflare Speed Test). Jeśli brak danych mobilnych lub endpoint jest niedostępny, test pokazuje błąd — **nigdy nie wstawia wymyślonych wyników w APK**.
-- Host może sprawdzić prawdziwe przekazanie 128 KB: wybrany telefon pobiera dane po swoim internecie komórkowym i odsyła je hostowi przez lokalne Wi‑Fi (port `8788`). To **test w obrębie aplikacji**, nie współdzielenie internetu innym programom.
+- Host może sprawdzić prawdziwe przekazanie 128 KB: wybrany telefon pobiera dane po swoim internecie komórkowym i odsyła je hostowi przez lokalne Wi‑Fi (port `8788`). Ten test również wymaga zgody uczestnika i zużywa jego limit danych.
+- **Wspólne pobieranie plików (nowość 0.2-preview):** host zleca fragmenty publicznego pliku HTTPS telefonom, które osobno włączyły przekazywanie danych komórkowych. Host może być jednym z dostawców tylko po własnym włączeniu zgody. Wynik jest składany według zakresów bajtów, obliczane jest SHA-256 i opcjonalnie porównywane z podaną sumą; ukończony plik zapisuje się w Pobranych i można go udostępnić. To transfer **tylko w obrębie aplikacji**.
 - Transparentny algorytm „złotego środka”: 46% prędkość, 40% bateria (+premia za ładowanie), 9% opóźnienie, 5% zasięg. Rozładowane telefony są karane. Telefon bez wykonanego testu nie zostaje rekomendowany jako przekaźnik.
+
+## Jak działa wspólne pobieranie
+
+1. Host tworzy siatkę, pozostałe telefony dołączają przez `MR1:`. Na **każdym telefonie, którego internet ma zostać użyty**, właściciel osobno zaznacza zgodę i wybiera limit 5–100 MB na sesję. Domyślnie zgoda jest **wyłączona** (także u hosta). Do transmisji potrzebne są równocześnie lokalne Wi‑Fi i aktywne dane komórkowe. Właściciel może odwołać zgodę w dowolnym momencie; bieżący odczyt może wymagać chwili, żeby się przerwać.
+2. Host wkleja publiczny URL `https://…` do pliku o wielkości 1 B–32 MiB. Serwer musi poprawnie obsługiwać `Range` i odpowiedź `206 Partial Content` z `Content-Range`; przekierowania są dozwolone tylko na publiczne HTTPS. Warto wkleić znany SHA-256 — **bez oczekiwanej sumy aplikacja tylko oblicza hash, nie może potwierdzić autentyczności zawartości**.
+3. Host dzieli plik na fragmenty do 512 KiB. Każdy chętny telefon pobiera po swoim komórkowym `Network` i oddaje bajty hostowi przez lokalne Wi‑Fi. Widać postęp, rzeczywistych dostawców i limit; nieudane fragmenty są ponawiane przez dostępne telefony. Dwa lub więcej dostępnych łączy może pracować równolegle, ale nie gwarantuje to wzrostu szybkości. Przy jednym łączu transfer jest pojedynczy.
+4. Po sprawdzeniu zakresów, rozmiaru i opcjonalnego oczekiwanego SHA-256 plik trafia do `Pobrane/MeshRouter/` (Android 10+) lub katalogu aplikacji `Pobrane` (Android 8–9). Host może go udostępnić systemowym arkuszem. Można też anulować zadanie — niekompletne fragmenty są usuwane.
+
+Limit jest liczony dla **bajtów treści faktycznie odczytanych przez aplikację** (także ponownych prób i 1 bajtu metadanych), nie dla całego ruchu operatora: nagłówki/TLS, DNS i narzut sieci mogą zużyć dodatkowe dane. Zgoda oraz licznik są zerowane po opuszczeniu siatki. Nie podawaj poufnych URL-i ani haseł: adres jest widoczny dla telefonów uczestniczących w pobieraniu, a lokalna kontrola działa bez osobnego TLS. Sprawdź koszty transmisji u operatora. Pobieranie nie routuje ruchu innych aplikacji i nie jest systemowym VPN/bondingiem.
+
+Przed deklaracją działania na konkretnych modelach Androida wykonaj [plan testów na fizycznych urządzeniach](docs/DEVICE_TESTING.md). Wyników tych testów jeszcze nie ma.
 
 ## Instalacja / APK
 
@@ -22,7 +34,7 @@ Wymaga Androida 8.0+ i działającego Wi‑Fi; do pomiaru i testu przekazania po
 2. Zainstaluj APK na obu telefonach (włącz zezwolenie „Instaluj nieznane aplikacje” dla użytej przeglądarki/menedżera plików). To **build debug**; po zmianie podpisu może wymagać odinstalowania starej wersji przed aktualizacją.
 3. Na telefonie A: **Utwórz** → uprawnienia Wi‑Fi/lokalizacji → **Udostępnij zaproszenie**.
 4. Na telefonie B: **Dołącz** → **Wklej ze schowka** albo wklej całe `MR1:…` → potwierdź systemowy monit połączenia Wi‑Fi. Telefony muszą być w zasięgu; na niektórych modelach trzeba włączyć Usługi lokalizacji, Wi‑Fi i dane komórkowe w ustawieniach.
-5. Na każdym telefonie włącz **Zmierz moje łącze** (test zużywa dane). Host może wybrać **Sprawdź przekaźnik**, jeśli drugi telefon wykonał pomiar.
+5. **Zmierz moje łącze** uruchamia oddzielny test zużywający ok. 1,3 MB (opcjonalny). Aby sprawdzić przekaźnik lub pobrać plik, na używanych telefonach otwórz **Wspólne pobieranie pliku** i włącz zgodę z limitem. Host podaje URL HTTPS oraz (najlepiej) oczekiwany SHA-256 i wybiera **Pobierz przez telefony**. Wskaźnik kołowy nadal pokazuje sumę oddzielnych pomiarów, a postęp rzeczywistego pliku widać w karcie pobierania.
 
 > Wygenerowany APK pochodzi z workflow na tym branchu. Artefakty GitHub Actions wygasają po 14 dniach i mogą wymagać zalogowania; prerelease udostępnia trwalszy link do pliku.
 
@@ -31,10 +43,10 @@ Wymaga Androida 8.0+ i działającego Wi‑Fi; do pomiaru i testu przekazania po
 ```bash
 npm ci
 npm run dev                 # demo w przeglądarce (Vite, port 5173)
-npm test                    # testy algorytmu
+npm test                    # testy algorytmu i granicy demo/Android
 npm run cap:sync            # buduje UI i kopiuje do android/
 # Wymaga JDK 17 + Android SDK 34 (np. Android Studio):
-cd android && ./gradlew assembleDebug
+cd android && ./gradlew :app:testDebugUnitTest :app:assembleDebug
 ```
 
 Podgląd produkcyjnego buildu: `npm run build && npm run preview`. Repo ma workflow GitHub Actions, który buduje i udostępnia instalowalny APK debug. **GitHub Pages nie jest jeszcze skonfigurowane**, bo w pierwszym etapie priorytetem była aplikacja i demo (nie strona marketingowa).

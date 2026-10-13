@@ -402,7 +402,7 @@ function renderDownload() {
   if (!host) return;
   const ready = store.nodes.filter((n) => n.hasCellular && n.relayEnabled && n.relayRemainingBytes > 0);
   $('#downloadPeersText').textContent = ready.length
-    ? `Gotowe łącza komórkowe: ${ready.length} (${ready.map((n) => n.isSelf ? 'ten telefon' : n.name).join(', ')}). Używane tylko na czas tego pobierania.`
+    ? `Telefony ze zgodą i modemem: ${ready.length} (${ready.map((n) => n.isSelf ? 'ten telefon' : n.name).join(', ')}). Aktywne dane komórkowe zostaną sprawdzone podczas pobierania.`
     : 'Brak zgadzających się telefonów z danymi komórkowymi i wolnym limitem. Uczestnicy włączają zgodę u siebie.';
 
   const job = store.download;
@@ -467,7 +467,7 @@ function buildDeviceCard(n) {
         <span class="metric metric--operator"><svg viewBox="0 0 24 24"><path d="M4 20V10M9 20V4M14 20v-8M19 20V8" /></svg><span data-m="operator"></span></span>
         <span class="metric" title="Zasięg Wi‑Fi"><span class="signal" data-m="signal"></span><span data-m="signalval"></span></span>
         <span class="metric" title="Pomiar łącza"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" /></svg><span data-m="speed"></span></span>
-        <span class="metric" title="Dane przekazane w teście aplikacji"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" /></svg><span data-m="shared"></span></span>
+        <span class="metric" title="Zliczone bajty pobierania/testów w MeshRouter; limit jest pokazany w ustawieniach zgody"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" /></svg><span data-m="shared"></span></span>
       </div>
     </div>
     <div class="device-card__battery"><div class="battery"><div class="battery__fill"></div></div><span class="battery__pct"></span></div>`;
