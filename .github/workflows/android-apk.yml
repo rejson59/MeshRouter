@@ -47,6 +47,20 @@ jobs:
           # Surface compile/test errors as check annotations, in addition to
           # logs (which are not always accessible through API integrations).
           if ! ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug 2>&1 | tee /tmp/meshrouter-gradle.log; then
+            # The Gradle XML reports contain the failing test names even if
+            # the remote log archive is inaccessible to API clients.
+            python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for path in glob.glob('app/build/test-results/testDebugUnitTest/*.xml'):
+              root = ET.parse(path).getroot()
+              for test in root.iter('testcase'):
+                  for failure in list(test):
+                      if failure.tag not in ('failure', 'error'): continue
+                      name = f"{test.get('classname')}.{test.get('name')}"
+                      detail = (failure.get('message') or failure.text or 'test failed').strip().splitlines()[0]
+                      detail = detail.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                      print(f"::error title={name}::{detail[:500]}")
+          PY
             grep -E 'error:|FAILURE:|What went wrong:|Compilation failed|There were failing tests|^> Task .* FAILED|^\* ' /tmp/meshrouter-gradle.log | tail -n 35 | while IFS= read -r line; do
               echo "::error::$line"
             done
