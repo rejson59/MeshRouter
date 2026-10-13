@@ -46,7 +46,12 @@ jobs:
           set -o pipefail
           # Surface compile/test errors as check annotations, in addition to
           # logs (which are not always accessible through API integrations).
-          if ! ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug 2>&1 | tee /tmp/meshrouter-gradle.log; then
+          # Repeat JVM tests to expose intermittent concurrency failures.
+          for attempt in 1 2 3 4 5 6; do
+            echo "JVM test pass $attempt/6"
+            if ./gradlew --no-daemon --rerun-tasks :app:testDebugUnitTest 2>&1 | tee /tmp/meshrouter-gradle.log; then
+              continue
+            fi
             # The Gradle XML reports contain the failing test names even if
             # the remote log archive is inaccessible to API clients.
             python3 - <<'PY'
@@ -65,7 +70,8 @@ jobs:
               echo "::error::$line"
             done
             exit 1
-          fi
+          done
+          ./gradlew --no-daemon :app:assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
