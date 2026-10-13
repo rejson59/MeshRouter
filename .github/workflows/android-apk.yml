@@ -43,7 +43,15 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+          set -o pipefail
+          # Surface compile/test errors as check annotations, in addition to
+          # logs (which are not always accessible through API integrations).
+          if ! ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug 2>&1 | tee /tmp/meshrouter-gradle.log; then
+            grep -E 'error:|FAILURE:|What went wrong:|Compilation failed|There were failing tests|^> Task .* FAILED|^\* ' /tmp/meshrouter-gradle.log | tail -n 35 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

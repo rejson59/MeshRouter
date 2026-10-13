@@ -129,6 +129,7 @@ final class MeshDownloadManager {
             out.put("links", job.links);
             out.put("fileName", job.fileName);
             out.put("sha256", job.sha256);
+            out.put("expectedHashProvided", !job.expectedHash.isEmpty());
             out.put("savedTo", job.savedTo);
             out.put("mbps", job.mbps);
             out.put("durationMs", job.durationMs);
@@ -177,6 +178,7 @@ final class MeshDownloadManager {
             if (remotes.size() > 4) remotes = new ArrayList<>(remotes.subList(0, 4));
             String sessionToken = token.get();
             CellularRange.Metadata metadata = null;
+            String metadataPeerId = "";
             Exception last = null;
             // Starting a download is NOT permission to consume host cellular
             // data: the host must opt in and is capped just like the peers.
@@ -199,6 +201,7 @@ final class MeshDownloadManager {
                         long total = response.getLong("total");
                         if (total < 1 || total > RangePlan.MAX_FILE_BYTES) throw new IOException("Plik przekracza 32 MB.");
                         metadata = new CellularRange.Metadata(total, response.optString("etag", ""), RangePlan.safeFileName(job.url));
+                        metadataPeerId = peer.id;
                         break;
                     } catch (Exception e) { last = e; }
                 }
@@ -209,7 +212,9 @@ final class MeshDownloadManager {
             // All contributors have a per-session content-byte budget; the
             // limits include retries and earlier jobs in this mesh session.
             long totalQuota = host == null ? 0 : hostBudget.remaining();
-            for (Remote peer : remotes) totalQuota += Math.max(0, peer.remaining);
+            for (Remote peer : remotes) {
+                totalQuota += Math.max(0, peer.remaining - (peer.id.equals(metadataPeerId) ? 1 : 0));
+            }
             if (totalQuota < metadata.total) throw new IOException("Uczestnicy nie zgodzili się na wystarczający limit danych dla tego pliku.");
             File directory = new File(context.getCacheDir(), "meshrouter-downloads");
             if (!directory.exists() && !directory.mkdirs()) throw new IOException("Nie można utworzyć katalogu tymczasowego.");
@@ -229,7 +234,8 @@ final class MeshDownloadManager {
             }
             for (Remote peer : remotes) {
                 JSONObject base = new JSONObject().put("url", job.url).put("total", size).put("etag", etag);
-                workers.add(new ChunkAssembler.Worker(peer.name, peer.remaining, chunk -> {
+                long available = Math.max(0, peer.remaining - (peer.id.equals(metadataPeerId) ? 1 : 0));
+                workers.add(new ChunkAssembler.Worker(peer.name, available, chunk -> {
                     if (!keepGoing.getAsBoolean()) throw new IOException("Pobieranie anulowane.");
                     JSONObject request = new JSONObject(base.toString()).put("start", chunk.start).put("length", chunk.length);
                     return MeshHttp.call(null, peer.ip, RELAY_PORT, "POST", "/chunk", request, sessionToken, RangePlan.CHUNK_BYTES);

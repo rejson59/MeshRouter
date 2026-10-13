@@ -416,8 +416,9 @@ function renderDownload() {
 
   const stateLabel = {
     probing: 'Sprawdzanie serwera i dostępnych łączy…', downloading: 'Pobieranie fragmentów…',
-    saving: 'Weryfikacja SHA-256 i zapis pliku…',
-    complete: 'Plik pobrany i zweryfikowany', failed: 'Nie udało się pobrać pliku',
+    saving: 'Obliczanie SHA-256 i zapis pliku…',
+    complete: job.expectedHashProvided ? 'Plik pobrany, SHA-256 zgodny' : 'Plik pobrany; SHA-256 obliczony',
+    failed: 'Nie udało się pobrać pliku',
     cancelled: 'Pobieranie anulowane'
   }[job.status] || 'Sprawdzanie stanu…';
   $('#downloadStateText').textContent = stateLabel;
