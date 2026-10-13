@@ -4,6 +4,10 @@ MeshRouter to **prototyp aplikacji Android** (API 26+, Android 8.0+) i osobne, w
 
 > **Granica techniczna:** To **nie** jest ogólnosystemowy router agregujący internet wielu telefonów. Android `LocalOnlyHotspot` tworzy lokalny hotspot WPA2 z SSID/hasłem nadawanym przez system, **bez** automatycznego udostępniania internetu. Wybrany przekaźnik jest rekomendacją aplikacji, nie przełączeniem fizycznego hosta Wi‑Fi. Wskaźnik w APK pokazuje **sumę indywidualnych pomiarów przepustowości**, nie realną prędkość jednego połączenia połączonego z wielu łączy. Demo w przeglądarce używa danych symulowanych, nie tworzy żadnej sieci. iOS: tylko demo webowe (API hotspotu jest zablokowane dla zwykłych aplikacji iOS).
 
+## Strona i demo
+
+Strona z opisem aplikacji, linkiem do aktualnego APK i **osadzonym interaktywnym demo** jest gotowa do podglądu (`npm run build:site && npm run site:preview`). Docelowy adres po aktywowaniu GitHub Pages to [**rejson59.github.io/MeshRouter/**](https://rejson59.github.io/MeshRouter/), a pełne demo będzie pod [`/demo/`](https://rejson59.github.io/MeshRouter/demo/). Strona jest statyczna; demo tworzy wyłącznie symulowane urządzenia i pomiary. Tylko instalowana aplikacja Android korzysta z natywnych sieci i pobierania plików. W ramce pulpit demo otwiera się automatycznie; samodzielnie otwarta wersja startuje od ekranu „Utwórz/Dołącz”.
+
 ## Co działa w APK
 
 - Host: `WifiManager.startLocalOnlyHotspot()`; lokalny serwer HTTP na porcie `8787` (chronione tokenem endpointy /hello, /heartbeat, /state, /leave) oraz informacyjna strona pod `/`.
@@ -42,14 +46,16 @@ Wymaga Androida 8.0+ i działającego Wi‑Fi; do pomiaru i testu przekazania po
 
 ```bash
 npm ci
-npm run dev                 # demo w przeglądarce (Vite, port 5173)
+npm run dev                 # samodzielne demo w przeglądarce (port 5173)
 npm test                    # testy algorytmu i granicy demo/Android
-npm run cap:sync            # buduje UI i kopiuje do android/
+npm run build:site          # strona + identyczne demo pod /demo/ → site-dist/
+npm run site:preview        # podgląd całej strony po build:site (port 4173)
+npm run cap:sync            # tylko UI aplikacji (dist/) → Android; nie kopiuje strony
 # Wymaga JDK 17 + Android SDK 34 (np. Android Studio):
 cd android && ./gradlew :app:testDebugUnitTest :app:assembleDebug
 ```
 
-Podgląd produkcyjnego buildu: `npm run build && npm run preview`. Repo ma workflow GitHub Actions, który buduje i udostępnia instalowalny APK debug. **GitHub Pages nie jest jeszcze skonfigurowane**, bo w pierwszym etapie priorytetem była aplikacja i demo (nie strona marketingowa).
+`npm run build` / `npm run cap:sync` zachowują `dist/index.html` jako wejście aplikacji Android. Oddzielny `npm run build:site` składa `landing.html` jako stronę główną i kopiuje tę samą kompilację demo do `site-dist/demo/`. Publikacja przez `.github/workflows/pages.yml` używa GitHub Pages z gałęzi `arena/b8909b4b-meshrouter` (źródło: GitHub Actions), bez gałęzi `gh-pages`. **Jednorazowo właściciel repozytorium musi włączyć Settings → Pages → Build and deployment → GitHub Actions.** Jeśli Pages jest wyłączone, workflow nadal testuje stronę i udostępnia jej artefakt, lecz nie udaje udanej publikacji; po włączeniu ponowny push na tę gałąź uruchomi wdrożenie. Osobny workflow buduje i udostępnia testowe APK.
 
 ## Ograniczenia i bezpieczeństwo
 
@@ -63,4 +69,6 @@ Podgląd produkcyjnego buildu: `npm run build && npm run preview`. Repo ma workf
 - `src/` — UI, tryb demonstracyjny, algorytm i cienki mostek Capacitor. Na natywnym Androidzie **brak fallbacku do symulacji**.
 - `android/app/src/main/java/com/rejson59/meshrouter/` — natywny plugin Java Android i ograniczony serwer LAN.
 - `captive.html` — wizualizacja przyszłej strony informacyjnej, **nie** działający automatyczny captive portal.
+- `landing.html`, `src/site/`, `vite.site.config.js`, `scripts/` — strona główna i oddzielny build GitHub Pages; aplikacja nadal używa `index.html`.
+- `.github/workflows/pages.yml` — testy, pakowanie strony z `/demo/` i publikacja na GitHub Pages.
 - `.github/workflows/android-apk.yml` — testy i budowanie APK debug w GitHub Actions.

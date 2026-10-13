@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pl" data-site-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101219" />
+    <meta name="description" content="MeshRouter — połącz telefony w lokalną sieć i pobieraj pliki przez ich niezależne łącza komórkowe, za zgodą uczestników. Zobacz interaktywne demo i pobierz testowy APK na Androida." />
+    <meta property="og:title" content="MeshRouter — kilka telefonów, jeden plik" />
+    <meta property="og:description" content="Prawdziwa aplikacja na Androida. Demo przeglądarkowe jest tylko pokazem. Poznaj projekt i wypróbuj interfejs." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://rejson59.github.io/MeshRouter/" />
+    <meta property="og:image" content="https://rejson59.github.io/MeshRouter/icons/icon-512.png" />
+    <link rel="canonical" href="https://rejson59.github.io/MeshRouter/" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <title>MeshRouter — kilka telefonów, jeden plik</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Przejdź do treści</a>
+    <header class="site-header" id="start">
+      <div class="container header-inner">
+        <a class="brand" href="#start" aria-label="MeshRouter — początek strony">
+          <span class="brand-symbol" aria-hidden="true">
+            <svg viewBox="0 0 42 42" fill="none"><path d="M21 20.5 9 10m12 10.5L33 9m-12 11.5L9 33m12-12.5L33 33" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="21" cy="21" r="5" fill="currentColor"/><circle cx="8" cy="9" r="3.3" fill="currentColor"/><circle cx="34" cy="9" r="3.3" fill="currentColor"/><circle cx="8" cy="34" r="3.3" fill="currentColor"/><circle cx="34" cy="34" r="3.3" fill="currentColor"/></svg>
+          </span>
+          <span>MeshRouter<span class="brand-dot">.</span></span>
+        </a>
+        <nav class="top-nav" aria-label="Menu główne">
+          <a href="#jak-dziala">Jak działa</a>
+          <a href="#demo">Demo</a>
+          <a href="#pobierz">Aplikacja</a>
+        </nav>
+        <div class="header-actions">
+          <button class="theme-toggle" id="themeToggle" type="button" aria-label="Włącz jasny motyw" aria-pressed="false" title="Zmień motyw strony"><span class="theme-toggle__icon" aria-hidden="true">☼</span><span class="theme-toggle__text">Motyw</span></button>
+          <a class="header-download" href="https://github.com/rejson59/MeshRouter/releases/download/v0.2.0-preview/MeshRouter-debug.apk" aria-label="Pobierz testowy APK MeshRouter"><span class="header-download__long">Pobierz APK</span><span class="header-download__short">APK</span><span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </header>
+
+    <main id="content">
+      <section class="hero section-spacing" aria-labelledby="hero-title">
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="eyebrow"><span class="eyebrow__pulse" aria-hidden="true"></span> WERSJA TESTOWA 0.2 · ANDROID</div>
+            <h1 id="hero-title">Jeden plik.<br />Kilka telefonów.<br /><span>Wspólny plan.</span></h1>
+            <p class="hero-lead">MeshRouter łączy telefony w lokalną sieć. W aplikacji na Androida każdy chętny telefon może pobrać część pliku przez <strong>własne dane komórkowe</strong>, a host złoży całość i sprawdzi jej sumę SHA-256.</p>
+            <div class="hero-actions">
+              <a class="button button--primary" href="#demo"><span class="button__icon" aria-hidden="true">▷</span> Wypróbuj demo <span class="button__arrow" aria-hidden="true">↗</span></a>
+              <a class="button button--secondary" href="https://github.com/rejson59/MeshRouter/releases/download/v0.2.0-preview/MeshRouter-debug.apk">Pobierz APK na Androida <span aria-hidden="true">↓</span></a>
+            </div>
+            <div class="hero-badges" aria-label="Ważne informacje">
+              <span><span class="mini-check" aria-hidden="true">✓</span> Android 8.0+</span>
+              <span><span class="mini-check" aria-hidden="true">✓</span> Zgoda każdego uczestnika</span>
+              <span><span class="mini-check" aria-hidden="true">✓</span> Demo bez instalacji</span>
+            </div>
+          </div>
+          <div class="hero-visual" role="img" aria-label="Ilustracja: dwa telefony przekazują fragmenty pliku do telefonu hosta; to schemat, nie pomiar prędkości">
+            <div class="visual-top"><span class="visual-live"><i aria-hidden="true"></i> JAK TO DZIAŁA</span><span class="visual-kind">Schemat, nie pomiar ↗</span></div>
+            <div class="visual-canvas">
+              <div class="visual-orbit visual-orbit--outer" aria-hidden="true"></div>
+              <div class="visual-orbit visual-orbit--inner" aria-hidden="true"></div>
+              <svg class="visual-lines" viewBox="0 0 500 392" aria-hidden="true" preserveAspectRatio="none"><defs><linearGradient id="lineA"><stop stop-color="#4f8cff"/><stop offset="1" stop-color="#8b70ff"/></linearGradient></defs><path d="M130 103 C195 132 199 166 248 195" stroke="url(#lineA)"/><path d="M370 112 C300 132 306 165 250 195" stroke="url(#lineA)"/><path d="M125 290 C191 256 210 230 248 195" stroke="url(#lineA)"/><circle cx="248" cy="195" r="72" stroke="currentColor" stroke-dasharray="3 12" fill="none" opacity=".23" /></svg>
+              <div class="visual-node visual-node--one"><span class="visual-node__avatar">01</span><span><strong>Telefon A</strong><small>dane komórkowe</small></span><span class="visual-node__tick" aria-hidden="true">↗</span></div>
+              <div class="visual-node visual-node--two"><span class="visual-node__avatar visual-node__avatar--violet">02</span><span><strong>Telefon B</strong><small>dane komórkowe</small></span><span class="visual-node__tick" aria-hidden="true">↗</span></div>
+              <div class="visual-node visual-node--three"><span class="visual-node__avatar visual-node__avatar--mint">03</span><span><strong>Fragmenty</strong><small>tylko za zgodą</small></span><span class="visual-node__tick" aria-hidden="true">✓</span></div>
+              <div class="visual-hub"><span class="visual-hub__halo" aria-hidden="true"></span><span class="visual-hub__icon" aria-hidden="true">⌘</span><strong>HOST</strong><small>składa plik</small></div>
+              <span class="visual-packet visual-packet--a" aria-hidden="true"></span><span class="visual-packet visual-packet--b" aria-hidden="true"></span>
+            </div>
+            <div class="visual-bottom"><span><span class="visual-bottom__dot" aria-hidden="true"></span> Zakresy bajtów</span><span>→</span><span>SHA-256</span><span>→</span><span>Gotowy plik <span class="visual-bottom__done" aria-hidden="true">✓</span></span></div>
+          </div>
+        </div>
+        <div class="container hero-under"><span>PROJEKT OPEN SOURCE · ANDROID-FIRST</span><a href="#jak-dziala">Odkryj, jak działa <span aria-hidden="true">↓</span></a></div>
+      </section>
+
+      <section class="truth-strip" aria-label="Rozróżnienie aplikacji i dema"><div class="container truth-inner"><span class="truth-pill"><span aria-hidden="true">◉</span> PRAWDZIWA APLIKACJA</span><p>APK pobiera dane na urządzeniach. <strong>Demo w przeglądarce tylko pokazuje interfejs</strong> — bez łączenia telefonów i bez przesyłania plików.</p></div></section>
+
+      <section class="how-section section-spacing" id="jak-dziala" aria-labelledby="how-title">
+        <div class="container">
+          <div class="section-heading"><span class="section-kicker">/ MOŻLIWOŚCI</span><h2 id="how-title">Technologia, która ma<br /><span>realne zadanie.</span></h2><p>Zamiast obiecywać „magiczny internet”, skupiamy się na konkretnej funkcji: wspólnym pobraniu jednego pliku.</p></div>
+          <div class="feature-grid">
+            <article class="feature-card feature-card--highlight"><div class="feature-card__number">01 / TRANSFER</div><div class="feature-icon feature-icon--blue" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M6 12h13m-8 8h14M6 28h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m23 7 7 5-7 5m6 0 6 5-6 5m0-1 6 5-6 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>Równoległe fragmenty</h3><p>Host dzieli publiczny plik HTTPS na zakresy. Chętne telefony pobierają je po swoich łączach komórkowych i oddają przez lokalne Wi‑Fi.</p><span class="feature-card__detail">do 32 MiB · HTTPS Range</span></article>
+            <article class="feature-card"><div class="feature-card__number">02 / KONTROLA</div><div class="feature-icon feature-icon--violet" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><path d="M20 4 33 9v10c0 9-5.5 14.2-13 17-7.5-2.8-13-8-13-17V9L20 4Z" stroke="currentColor" stroke-width="2"/><path d="m14 20 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>Zgoda pod kontrolą</h3><p>Każda osoba sama włącza udział swojego telefonu, ustawia limit bajtów treści na sesję i może w każdej chwili wycofać zgodę.</p><span class="feature-card__detail">domyślnie wyłączone · limit 5–100 MiB</span></article>
+            <article class="feature-card"><div class="feature-card__number">03 / PEWNOŚĆ</div><div class="feature-icon feature-icon--mint" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none"><rect x="7" y="5" width="26" height="30" rx="5" stroke="currentColor" stroke-width="2"/><path d="M13 14h14M13 20h14M13 26h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="27" cy="27" r="5" fill="currentColor"/><path d="m25 27 1.4 1.4L29 26" stroke="#101219" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>Weryfikacja na końcu</h3><p>Host składa bajty we właściwej kolejności i oblicza SHA-256. Podaj oczekiwany hash, żeby sprawdzić zgodność całego pliku.</p><span class="feature-card__detail">Content-Range · ETag · SHA-256</span></article>
+          </div>
+          <div class="steps-row"><span>01 <strong>Utwórz lokalną siatkę</strong></span><i aria-hidden="true">→</i><span>02 <strong>Zbierz zgody</strong></span><i aria-hidden="true">→</i><span>03 <strong>Pobierz plik w aplikacji</strong></span></div>
+        </div>
+      </section>
+
+      <section class="demo-section section-spacing" id="demo" aria-labelledby="demo-title">
+        <div class="container demo-layout">
+          <div class="demo-copy">
+            <span class="section-kicker">/ ZOBACZ NA ŻYWO</span>
+            <h2 id="demo-title">Przetestuj wygląd.<br /><span>Bez instalacji.</span></h2>
+            <p>To osadzona, interaktywna wersja <strong>pokazowa</strong>. Klikaj, twórz siatkę i przełączaj motyw. Urządzenia oraz pomiary są symulowane — prawdziwe połączenia i wspólne pobieranie dostępne są tylko w APK.</p>
+            <div class="demo-instructions"><span class="demo-instructions__badge" aria-hidden="true">↗</span><div><strong>Co się zmieniło?</strong><span>Przewiń ekran telefonu do sekcji „Wspólne pobieranie pliku”. W APK pojawiają się tam zgoda, limit, postęp i udostępnianie; demo wyjaśnia różnicę.</span></div></div>
+            <a class="text-link" href="./demo/">Otwórz pełne demo <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="demo-showcase"><div class="demo-frame-label"><span><i aria-hidden="true"></i> DEMO INTERAKTYWNE</span><span>przeglądarka / symulacja</span></div><div class="demo-phone"><div class="demo-phone__sensor" aria-hidden="true"></div><iframe title="Interaktywne demo MeshRouter — dane i urządzenia są symulowane" src="./demo/?preview=dashboard" loading="lazy" allow="clipboard-read; clipboard-write; web-share"></iframe></div><p class="demo-frame-note">Wszystko, co widzisz w ramce, jest symulacją. Ta strona nie używa danych komórkowych.</p></div>
+        </div>
+      </section>
+
+      <section class="honest-section section-spacing" aria-labelledby="honest-title"><div class="container honest-grid"><div><span class="section-kicker">/ BEZ NIEDOMÓWIEŃ</span><h2 id="honest-title">Co robi. A czego <span>jeszcze nie robi.</span></h2></div><div class="honest-list"><p><span aria-hidden="true">✓</span> APK tworzy chronioną sieć lokalną i pozwala pobrać plik za zgodą uczestników.</p><p><span aria-hidden="true">—</span> Nie łączy systemowego internetu innych aplikacji. Nie jest VPN, otwartym hotspotem ani automatycznym portalem.</p><p><span aria-hidden="true">—</span> Nowy transfer przeszedł testy automatyczne, ale wymaga jeszcze sprawdzenia na dwóch fizycznych telefonach.</p></div></div></section>
+
+      <section class="download-section section-spacing" id="pobierz" aria-labelledby="download-title"><div class="container"><div class="download-panel"><div class="download-panel__halo" aria-hidden="true"></div><div class="download-panel__content"><span class="section-kicker">/ ZACZNIJ TESTOWAĆ</span><h2 id="download-title">Twoja siatka.<br /><span>Twój wybór.</span></h2><p>Zainstaluj testowy APK na Androidzie 8.0 lub nowszym. Pamiętaj: build ma tymczasowy podpis debugowy, a dane komórkowe mogą wiązać się z kosztami.</p><div class="download-panel__actions"><a class="button button--primary" href="https://github.com/rejson59/MeshRouter/releases/download/v0.2.0-preview/MeshRouter-debug.apk">Pobierz MeshRouter APK <span aria-hidden="true">↓</span></a><a class="button button--secondary" href="https://github.com/rejson59/MeshRouter">Zobacz kod na GitHub <span aria-hidden="true">↗</span></a></div><span class="download-panel__meta">0.2.0-preview · Android 8.0+ · wydanie testowe, nie Play Store</span></div><div class="download-panel__art" aria-hidden="true"><span class="download-ring download-ring--one"></span><span class="download-ring download-ring--two"></span><span class="download-ring download-ring--three"></span><span class="download-mark">M<span>R</span></span></div></div></div></section>
+    </main>
+
+    <footer class="site-footer"><div class="container footer-inner"><div><a class="brand brand--footer" href="#start">MeshRouter<span class="brand-dot">.</span></a><p>Razem pobieramy lepiej. Uczciwie mówimy, co jest demonstracją.</p></div><div class="footer-links"><a href="#jak-dziala">Jak działa</a><a href="#demo">Demo</a><a href="https://github.com/rejson59/MeshRouter/releases/tag/v0.2.0-preview">Wydanie APK</a><a href="https://github.com/rejson59/MeshRouter">GitHub</a></div><span class="copyright">© <span id="year">2026</span> MeshRouter · Projekt testowy</span></div></footer>
+    <script type="module" src="/src/site/main.js"></script>
+  </body>
+</html>

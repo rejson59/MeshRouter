@@ -8,7 +8,9 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "test": "node --test tests/*.test.js",
     "build": "vite build",
+    "build:site": "npm run build && vite build --config vite.site.config.js && node scripts/finalize-site.mjs && node scripts/check-site.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "site:preview": "vite preview --config vite.site.config.js",
     "cap:sync": "npm run build && cap sync android"
   },
   "dependencies": {

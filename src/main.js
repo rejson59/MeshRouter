@@ -14,7 +14,16 @@ function boot() {
   injectGaugeGradient();
   bindEvents();
   store.subscribe(render);
-  store.loadDeviceInfo().catch((e) => toast(`Nie udało się odczytać urządzenia: ${message(e)}`, 'warn'));
+  store.loadDeviceInfo()
+    .then(async () => {
+      // The website embeds an already-open DEMO dashboard. This path is never
+      // used by the APK and cannot start a real mesh or transfer in a browser.
+      if (!store.isNative && new URLSearchParams(location.search).get('preview') === 'dashboard') {
+        await store.createMesh('Mesh‑Demo', 'Ty');
+        store.go('dashboard');
+      }
+    })
+    .catch((e) => toast(`Nie udało się uruchomić podglądu: ${message(e)}`, 'warn'));
   if (!store.isNative) registerSW();
   render();
 }
