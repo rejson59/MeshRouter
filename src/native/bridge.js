@@ -89,6 +89,27 @@ export async function testRelay(nodeId) {
   throw new Error('Test przekaźnika wymaga dwóch prawdziwych telefonów Android.');
 }
 
+// The browser demo never transfers data or fabricates a successful download.
+export async function setRelayEnabled(enabled, limitMb) {
+  if (android) return MeshBridge.setRelayEnabled({ enabled, limitMb });
+  throw new Error('Zgoda na przekazywanie danych jest dostępna tylko w aplikacji Android.');
+}
+
+export async function startDownload(url, sha256) {
+  if (android) return MeshBridge.startCooperativeDownload({ url, sha256 });
+  throw new Error('Pobieranie przez telefony jest dostępne tylko w aplikacji Android.');
+}
+
+export async function cancelDownload() {
+  if (android) return MeshBridge.cancelCooperativeDownload();
+  throw new Error('Anulowanie pobierania jest dostępne tylko w aplikacji Android.');
+}
+
+export async function shareDownload() {
+  if (android) return MeshBridge.shareDownloadedFile();
+  throw new Error('Udostępnianie pobranego pliku wymaga aplikacji Android.');
+}
+
 export async function scanNetworks() {
   if (android) throw new Error('Na Androidzie wklej zaproszenie od hosta. Nazwę i hasło sieci nadaje system.');
   await sleep(1200);

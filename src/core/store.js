@@ -21,6 +21,7 @@ export const store = {
   selfId: 'self', foundNetworks: [],
   permissions: { location: false, wifi: false, nearby: false },
   nativeError: '', relayResult: null,
+  relayEnabled: false, relayLimitMb: 25, relayRemainingBytes: 0, download: null,
   _subs: new Set(), _timer: null, _polling: false, _pendingDemoTimers: [],
 
   subscribe(fn) { this._subs.add(fn); return () => this._subs.delete(fn); },
@@ -135,6 +136,8 @@ export const store = {
         this.nodes = [];
         this.gateway = null;
         this.combined = 0;
+        this.download = null;
+        this.relayEnabled = false;
         this.emit();
       }
       return;
@@ -148,13 +151,20 @@ export const store = {
     this.invite = raw.invite || '';
     this.selfId = raw.selfId;
     this.nativeError = raw.error || '';
+    this.relayEnabled = !!raw.relayEnabled;
+    this.relayLimitMb = raw.relayBudgetBytes ? Math.round(raw.relayBudgetBytes / 1048576) : 25;
+    this.relayRemainingBytes = raw.relayEnabled
+      ? Math.max(0, (raw.relayBudgetBytes || 0) - (raw.relaySpentBytes || 0)) : 0;
+    this.download = raw.downloadJob || null;
     this.nodes = Array.isArray(raw.nodes) ? raw.nodes.map((n) => ({
       id: n.id, name: n.name || 'Telefon', model: n.model || 'Android',
       operator: n.operator || '—', battery: n.battery || 0,
       charging: !!n.charging, signal: n.signal || 0,
       download: n.download || 0, upload: n.upload || 0, ping: n.ping || 0,
       dataShared: n.dataShared || 0, measuredAt: n.measuredAt || 0,
-      hasCellular: !!n.hasCellular, isSelf: n.id === raw.selfId, isGateway: false
+      hasCellular: !!n.hasCellular, relayEnabled: !!n.relayEnabled,
+      relayRemainingBytes: n.relayRemainingBytes || 0,
+      isSelf: n.id === raw.selfId, isGateway: false
     })) : [];
     this._recompute();
     this.emit();
@@ -199,6 +209,37 @@ export const store = {
     this.relayResult = result;
     this.emit();
     return result;
+  },
+
+  async setRelayEnabled(enabled, limitMb) {
+    if (!this.isNative || this.status !== 'connected') throw new Error('Najpierw dołącz do siatki na Androidzie.');
+    const snapshot = await bridge.setRelayEnabled(enabled, limitMb);
+    this._applyNative(snapshot);
+    return snapshot;
+  },
+
+  async startDownload(url, sha256 = '') {
+    if (!this.isNative || this.role !== 'host' || this.status !== 'connected') {
+      throw new Error('Pobieranie pliku może uruchomić tylko host w aplikacji Android.');
+    }
+    const result = await bridge.startDownload(url, sha256);
+    this.download = result.job;
+    this.emit();
+    return result.job;
+  },
+
+  async cancelDownload() {
+    if (!this.isNative || this.role !== 'host') throw new Error('Anulowanie wymaga hosta.');
+    const snapshot = await bridge.cancelDownload();
+    this._applyNative(snapshot);
+    return snapshot;
+  },
+
+  async shareDownload() {
+    if (!this.isNative || this.role !== 'host' || this.download?.status !== 'complete') {
+      throw new Error('Nie ma ukończonego pliku do udostępnienia.');
+    }
+    return bridge.shareDownload();
   },
 
   _scheduleDemoPeers(count) {
@@ -253,7 +294,8 @@ export const store = {
     this.set({
       status: 'idle', role: null, nodes: [], gateway: null, ranked: [],
       meshName: '', meshSsid: '', meshPassword: '', meshIp: '', invite: '',
-      combined: 0, foundNetworks: [], meshStats: null, nativeError: '', relayResult: null
+      combined: 0, foundNetworks: [], meshStats: null, nativeError: '', relayResult: null,
+      relayEnabled: false, relayRemainingBytes: 0, download: null
     });
   },
 

@@ -264,6 +264,52 @@
           <p class="test-result" id="testResult" hidden></p>
         </div>
 
+        <div class="download-card soft-card" id="downloadCard">
+          <div class="test-card__top">
+            <div>
+              <strong>Wspólne pobieranie pliku</strong>
+              <small>Fragmenty pliku przez dane komórkowe chętnych telefonów, składane i sprawdzane u hosta.</small>
+            </div>
+            <span class="test-card__icon" aria-hidden="true">↓</span>
+          </div>
+          <p class="download-explainer" id="downloadDemo">
+            Tylko podgląd. Przeglądarka nie pobiera pliku przez telefony — zainstaluj APK na co najmniej dwóch Androidach, aby wypróbować funkcję.
+          </p>
+          <div id="nativeDownloadControls" hidden>
+            <div class="relay-settings soft-inset">
+              <label class="relay-consent" for="relayConsent">
+                <input type="checkbox" id="relayConsent" />
+                <span><strong>Wyrażam zgodę na użycie moich danych komórkowych</strong>
+                  <small>Oddzielna, odwoływalna zgoda. Żaden telefon nie udostępnia łącza bez zgody właściciela.</small></span>
+              </label>
+              <label class="field" for="relayLimitInput">
+                <span class="field__label">Maksymalna ilość moich danych na tę sesję (5–100 MB)</span>
+                <input class="input soft-inset" id="relayLimitInput" type="number" min="5" max="100" step="1" value="25" inputmode="numeric" />
+              </label>
+              <small id="relayBudgetText" class="download-note" aria-live="polite">Przekazywanie wyłączone.</small>
+            </div>
+            <div id="hostDownloadControls" class="download-host" hidden>
+              <p class="download-explainer" id="downloadPeersText">Najpierw poproś uczestników o zgodę na przekazywanie danych.</p>
+              <label class="field" for="downloadUrlInput">
+                <span class="field__label">Publiczny adres pliku HTTPS (max 32 MiB, obsługa Range)</span>
+                <input class="input soft-inset" id="downloadUrlInput" type="url" inputmode="url" placeholder="https://example.org/plik.zip" maxlength="2048" autocomplete="off" spellcheck="false" />
+              </label>
+              <label class="field" for="downloadHashInput">
+                <span class="field__label">Oczekiwany SHA-256 (zalecany)</span>
+                <input class="input soft-inset" id="downloadHashInput" type="text" placeholder="64 znaki szesnastkowe" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false" />
+              </label>
+              <button class="btn btn--primary btn--pill btn--block" id="startDownloadBtn" data-action="start-download">Pobierz przez telefony</button>
+              <div class="download-progress soft-inset" id="downloadProgress" hidden aria-live="polite">
+                <strong id="downloadStateText">Oczekiwanie…</strong>
+                <progress id="downloadProgressBar" max="100" value="0"></progress>
+                <small id="downloadDetailsText"></small>
+              </div>
+              <button class="btn btn--ghost btn--pill btn--block" id="cancelDownloadBtn" data-action="cancel-download" hidden>Anuluj pobieranie</button>
+              <button class="btn btn--ghost btn--pill btn--block" id="shareDownloadBtn" data-action="share-download" hidden>Udostępnij pobrany plik</button>
+            </div>
+          </div>
+        </div>
+
         <div class="gateway-card soft-card" id="gatewayCard">
           <div class="gateway-card__badge" aria-hidden="true">★</div>
           <div class="gateway-card__body">

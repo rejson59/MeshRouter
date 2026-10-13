@@ -7,6 +7,7 @@ import { formatSpeed, speedLabel, batteryColor, signalLevel, initials } from './
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+let downloadSubmitting = false;
 
 function boot() {
   document.documentElement.setAttribute('data-theme', store.theme);
@@ -47,6 +48,21 @@ function bindEvents() {
       $('#startCreateBtn').click();
     }
   });
+  document.addEventListener('change', async (event) => {
+    if (!['relayConsent', 'relayLimitInput'].includes(event.target.id)) return;
+    try {
+      const limitMb = Number($('#relayLimitInput').value);
+      if (!Number.isInteger(limitMb) || limitMb < 5 || limitMb > 100) {
+        throw new Error('Wybierz limit od 5 do 100 MB.');
+      }
+      const enabled = $('#relayConsent').checked;
+      await store.setRelayEnabled(enabled, limitMb);
+      toast(enabled ? 'Zgoda zapisana — w każdej chwili możesz ją cofnąć' : 'Przekazywanie danych wyłączone', 'good');
+    } catch (e) {
+      toast(message(e), 'warn');
+      renderDownload(); // restore the actual native settings after a failed change
+    }
+  });
 }
 
 async function handleAction(action, element) {
@@ -79,6 +95,9 @@ async function handleAction(action, element) {
     }
     case 'run-test': await runTest(); break;
     case 'test-relay': await testRelay(); break;
+    case 'start-download': await startDownload(); break;
+    case 'cancel-download': await store.cancelDownload(); break;
+    case 'share-download': await store.shareDownload(); break;
     case 'leave': openModal(); break;
     case 'share-invite': await shareInvite(); break;
   }
@@ -214,6 +233,23 @@ async function testRelay() {
   }
 }
 
+async function startDownload() {
+  if (downloadSubmitting) return;
+  const url = $('#downloadUrlInput').value.trim();
+  const sha256 = $('#downloadHashInput').value.trim();
+  if (!url.startsWith('https://')) throw new Error('Podaj publiczny adres HTTPS pliku.');
+  if (sha256 && !/^[0-9a-fA-F]{64}$/.test(sha256)) throw new Error('SHA-256 musi zawierać 64 znaki szesnastkowe.');
+  downloadSubmitting = true;
+  $('#startDownloadBtn').disabled = true;
+  try {
+    await store.startDownload(url, sha256);
+    toast('Pobieranie rozpoczęte — stan i weryfikacja pojawią się poniżej.', 'good');
+  } finally {
+    downloadSubmitting = false;
+    renderDownload();
+  }
+}
+
 function showTestResult(text) {
   const el = $('#testResult');
   el.textContent = text;
@@ -343,10 +379,60 @@ function renderDashboard() {
     ? 'Test korzysta z danych komórkowych. *Suma pomiarów nie oznacza połączenia łączy dla innych aplikacji.'
     : 'To wizualizacja. W APK pomiary pobierane są z prawdziwych telefonów.';
   $('#testRelayBtn').hidden = !store.isNative || store.role !== 'host' || !store.getRelayTarget();
+  renderDownload();
   $('#footerShareBtn').hidden = store.isNative;
   renderDevices();
   $('#deviceCount').textContent = String(store.nodes.length);
 }
+
+function renderDownload() {
+  $('#downloadDemo').hidden = store.isNative;
+  $('#nativeDownloadControls').hidden = !store.isNative;
+  if (!store.isNative) return;
+  const consent = $('#relayConsent');
+  consent.checked = store.relayEnabled;
+  const limit = $('#relayLimitInput');
+  if (document.activeElement !== limit) limit.value = String(store.relayLimitMb);
+  $('#relayBudgetText').textContent = store.relayEnabled
+    ? `Pozostało ${formatMiB(store.relayRemainingBytes)} z ${store.relayLimitMb} MB na tę sesję. Wyłączenie zgody blokuje nowe fragmenty.`
+    : `Przekazywanie wyłączone. Limit po włączeniu: ${store.relayLimitMb} MB na sesję.`;
+
+  const host = store.role === 'host';
+  $('#hostDownloadControls').hidden = !host;
+  if (!host) return;
+  const ready = store.nodes.filter((n) => n.hasCellular && n.relayEnabled && n.relayRemainingBytes > 0);
+  $('#downloadPeersText').textContent = ready.length
+    ? `Gotowe łącza komórkowe: ${ready.length} (${ready.map((n) => n.isSelf ? 'ten telefon' : n.name).join(', ')}). Używane tylko na czas tego pobierania.`
+    : 'Brak zgadzających się telefonów z danymi komórkowymi i wolnym limitem. Uczestnicy włączają zgodę u siebie.';
+
+  const job = store.download;
+  const active = job && ['probing', 'downloading', 'saving'].includes(job.status);
+  $('#startDownloadBtn').disabled = downloadSubmitting || active || ready.length === 0;
+  $('#startDownloadBtn').textContent = active ? 'Pobieranie w toku…' : 'Pobierz przez telefony';
+  $('#cancelDownloadBtn').hidden = !active;
+  $('#shareDownloadBtn').hidden = job?.status !== 'complete';
+  $('#downloadProgress').hidden = !job;
+  if (!job) return;
+
+  const stateLabel = {
+    probing: 'Sprawdzanie serwera i dostępnych łączy…', downloading: 'Pobieranie fragmentów…',
+    saving: 'Weryfikacja SHA-256 i zapis pliku…',
+    complete: 'Plik pobrany i zweryfikowany', failed: 'Nie udało się pobrać pliku',
+    cancelled: 'Pobieranie anulowane'
+  }[job.status] || 'Sprawdzanie stanu…';
+  $('#downloadStateText').textContent = stateLabel;
+  const progress = job.total > 0 ? Math.min(100, Math.round(job.bytes / job.total * 100)) : 0;
+  $('#downloadProgressBar').value = job.status === 'complete' ? 100 : progress;
+  const sources = Array.isArray(job.contributors) && job.contributors.length
+    ? ` · źródła: ${job.contributors.map((p) => `${p.name} ${formatMiB(p.bytes)}`).join(', ')}` : '';
+  $('#downloadDetailsText').textContent = job.error
+    ? job.error
+    : job.status === 'complete'
+      ? `${job.savedTo} · ${formatMiB(job.total)} · ${job.mbps} Mbps · SHA-256: ${job.sha256}${sources}`
+      : `${formatMiB(job.bytes)} / ${job.total ? formatMiB(job.total) : '…'} · ${job.links || 0} łączy${sources}`;
+}
+
+function formatMiB(bytes) { return `${(Number(bytes || 0) / 1048576).toFixed(2)} MiB`; }
 
 function renderDevices() {
   const list = $('#deviceList');
@@ -373,6 +459,7 @@ function buildDeviceCard(n) {
         <span class="device-card__name">${escapeHtml(n.name)}</span>
         <span class="device-card__you" data-tag="you" hidden>Ty</span>
         <span class="device-card__gw" data-tag="gw" hidden>★ lider</span>
+        <span class="device-card__relay" data-tag="relay" hidden>↗ zgoda</span>
       </div>
       <div class="device-card__model">${escapeHtml(n.model)}</div>
       <div class="device-card__metrics">
@@ -390,6 +477,7 @@ function updateDeviceCard(card, n) {
   card.classList.toggle('device-card--gateway', !!n.isGateway);
   card.querySelector('[data-tag="you"]').hidden = !n.isSelf;
   card.querySelector('[data-tag="gw"]').hidden = !n.isGateway;
+  card.querySelector('[data-tag="relay"]').hidden = !store.isNative || !n.relayEnabled || n.relayRemainingBytes <= 0;
   card.querySelector('[data-m="operator"]').textContent = n.operator || '—';
   const level = signalLevel(n.signal || 0);
   card.querySelector('[data-m="signal"]').innerHTML = [1, 2, 3, 4]

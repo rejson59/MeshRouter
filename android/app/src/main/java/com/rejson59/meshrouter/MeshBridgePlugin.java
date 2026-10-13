@@ -89,6 +89,8 @@ public class MeshBridgePlugin extends Plugin {
     private static final int RELAY_PORT = 8788;
     private static final int PROBE_BYTES = 128 * 1024;
     private static final long PEER_TTL_MS = 15000;
+    private static final long DEFAULT_RELAY_BUDGET = 25L * 1024 * 1024;
+    private static final long MAX_RELAY_BUDGET = 100L * 1024 * 1024;
 
     private final Object lock = new Object();
     private final ExecutorService io = Executors.newCachedThreadPool();
@@ -98,8 +100,8 @@ public class MeshBridgePlugin extends Plugin {
 
     private WifiManager wifi;
     private ConnectivityManager connectivity;
-    private WifiManager.LocalOnlyHotspotReservation reservation;
-    private ConnectivityManager.NetworkCallback joinCallback;
+    private volatile WifiManager.LocalOnlyHotspotReservation reservation;
+    private volatile ConnectivityManager.NetworkCallback joinCallback;
     private Network wifiNetwork;
     private MeshHttp.Server controlServer;
     private MeshHttp.Server relayServer;
@@ -121,7 +123,12 @@ public class MeshBridgePlugin extends Plugin {
     private volatile int pingMs = 0;
     private volatile long measuredAt = 0;
     private volatile long relayBytes = 0;
+    private volatile boolean relayEnabled = false;
+    private volatile long relayBudgetBytes = DEFAULT_RELAY_BUDGET;
+    private final AtomicLong relaySpentBytes = new AtomicLong(0);
+    private final java.util.concurrent.Semaphore relaySlot = new java.util.concurrent.Semaphore(1);
     private final AtomicLong lastRelayAt = new AtomicLong(0);
+    private MeshDownloadManager downloader;
 
     private static final class Peer {
         JSONObject node;
@@ -138,6 +145,22 @@ public class MeshBridgePlugin extends Plugin {
     public void load() {
         wifi = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         connectivity = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        downloader = new MeshDownloadManager(getContext(), () -> {
+            NetworkLease lease = acquireCellular();
+            return new MeshDownloadManager.Lease() {
+                @Override public Network network() { return lease.network; }
+                @Override public void close() { lease.close(connectivity); }
+            };
+        }, this::availableRemotes, () -> token, () -> connected && "host".equals(role),
+            new MeshDownloadManager.HostBudget() {
+                @Override public long remaining() {
+                    return relayEnabled ? Math.max(0, relayBudgetBytes - relaySpentBytes.get()) : 0;
+                }
+                @Override public void spend(int bytes) {
+                    relaySpentBytes.addAndGet(bytes);
+                    relayBytes += bytes;
+                }
+            });
     }
 
     @PluginMethod
@@ -195,6 +218,7 @@ public class MeshBridgePlugin extends Plugin {
             lastError = "";
         }
         AtomicBoolean settled = new AtomicBoolean(false);
+        AtomicReference<WifiManager.LocalOnlyHotspotReservation> opened = new AtomicReference<>();
         scheduler.schedule(() -> {
             if (settled.compareAndSet(false, true)) call.reject("Android nie uruchomił hotspotu (sprawdź Wi-Fi i usługi lokalizacji).");
         }, 18, TimeUnit.SECONDS);
@@ -210,6 +234,7 @@ public class MeshBridgePlugin extends Plugin {
                             MeshHttp.Server server = new MeshHttp.Server(CONTROL_PORT, MeshBridgePlugin.this::handleControl);
                             synchronized (lock) {
                                 reservation = r;
+                                opened.set(r);
                                 controlServer = server;
                                 ssid = credentials[0];
                                 password = credentials[1];
@@ -229,7 +254,7 @@ public class MeshBridgePlugin extends Plugin {
 
                 @Override
                 public void onStopped() {
-                    if ("host".equals(role)) {
+                    if (reservation != null && reservation == opened.get() && "host".equals(role)) {
                         lastError = "Hotspot został wyłączony przez Androida.";
                         stopInternal();
                     }
@@ -298,7 +323,7 @@ public class MeshBridgePlugin extends Plugin {
 
                 @Override
                 public void onLost(Network network) {
-                    if (connected && "member".equals(role)) {
+                    if (joinCallback == this && connected && "member".equals(role)) {
                         lastError = "Utracono połączenie z siecią hosta.";
                         stopInternal();
                     }
@@ -408,6 +433,55 @@ public class MeshBridgePlugin extends Plugin {
     @PluginMethod
     public void leaveMesh(PluginCall call) { stopInternal(); call.resolve(new JSObject()); }
 
+    /** Explicit, revocable permission and per-session budget for EVERY contributor, including the host. */
+    @PluginMethod
+    public void setRelayEnabled(PluginCall call) {
+        if (!connected || !("member".equals(role) || "host".equals(role))) {
+            call.reject("Najpierw połącz telefon z siatką."); return;
+        }
+        boolean allow = Boolean.TRUE.equals(call.getBoolean("enabled", false));
+        int limitMb = call.getInt("limitMb", 25);
+        if (limitMb < 5 || limitMb > 100) { call.reject("Limit musi wynosić 5–100 MB."); return; }
+        if (allow && !hasCellularHardware()) { call.reject("Ten telefon nie ma łącza komórkowego."); return; }
+        Battery b = battery();
+        if (allow && !b.charging && b.level < 0.15) { call.reject("Bateria poniżej 15% — naładuj telefon przed udostępnianiem."); return; }
+        if (allow && relaySpentBytes.get() >= limitMb * 1024L * 1024L) {
+            call.reject("Wybrany limit został już wykorzystany w tej sesji."); return;
+        }
+        relayBudgetBytes = limitMb * 1024L * 1024L;
+        relayEnabled = allow;
+        call.resolve(snapshot());
+        // The host learns the changed consent immediately (or on the next
+        // 3-second heartbeat if Wi-Fi is briefly unavailable).
+        scheduler.execute(() -> {
+            if (!connected || !"member".equals(role)) return;
+            try {
+                remoteSnapshot = MeshHttp.callJson(wifiNetwork, hostIp, CONTROL_PORT,
+                    "POST", "/heartbeat", new JSONObject().put("node", localNode()), token);
+            } catch (Exception ignored) {}
+        });
+    }
+
+    @PluginMethod
+    public void startCooperativeDownload(PluginCall call) {
+        try {
+            JSONObject job = downloader.start(call.getString("url", ""), call.getString("sha256", ""));
+            JSObject result = new JSObject(); result.put("job", job); call.resolve(result);
+        } catch (Exception e) { call.reject("Nie można rozpocząć pobierania: " + safeError(e)); }
+    }
+
+    @PluginMethod
+    public void cancelCooperativeDownload(PluginCall call) {
+        downloader.cancel();
+        call.resolve(snapshot());
+    }
+
+    @PluginMethod
+    public void shareDownloadedFile(PluginCall call) {
+        try { downloader.share(); call.resolve(new JSObject()); }
+        catch (Exception e) { call.reject("Nie można udostępnić pliku: " + safeError(e)); }
+    }
+
     @PluginMethod
     public void speedTest(PluginCall call) {
         io.execute(() -> {
@@ -470,6 +544,9 @@ public class MeshBridgePlugin extends Plugin {
         if (peer == null || SystemClock.elapsedRealtime() - peer.seen > PEER_TTL_MS) {
             call.reject("Wybrany telefon jest niedostępny."); return;
         }
+        if (!peer.node.optBoolean("relayEnabled") || peer.node.optLong("relayRemainingBytes") < PROBE_BYTES) {
+            call.reject("Uczestnik musi najpierw wyrazić zgodę na udostępnianie danych."); return;
+        }
         io.execute(() -> {
             try {
                 long start = SystemClock.elapsedRealtimeNanos();
@@ -523,33 +600,105 @@ public class MeshBridgePlugin extends Plugin {
         return MeshHttp.Response.json(404, MeshHttp.error("Nie znaleziono"));
     }
 
-    private MeshHttp.Response handleRelay(MeshHttp.Request req, String ip) throws Exception {
-        if (!"GET".equals(req.method) || !"/probe".equals(req.path)) return MeshHttp.Response.json(404, MeshHttp.error("Nie znaleziono"));
+    private MeshHttp.Response handleRelay(MeshHttp.Request req, String ip) {
+        boolean probe = "GET".equals(req.method) && "/probe".equals(req.path);
+        boolean metadata = "POST".equals(req.method) && "/metadata".equals(req.path);
+        boolean chunk = "POST".equals(req.method) && "/chunk".equals(req.path);
+        if (!probe && !metadata && !chunk) return MeshHttp.Response.json(404, MeshHttp.error("Nie znaleziono"));
         if (!authorized(req.token()) || !ip.equals(hostIp)) return MeshHttp.Response.json(401, MeshHttp.error("Brak dostępu"));
-        if (!connected || !"member".equals(role)) return MeshHttp.Response.json(400, MeshHttp.error("Węzeł nie jest połączony"));
-        // The test consumes cellular data. Only the host may request it,
-        // at most once every 20 seconds even if the shared invite leaks.
-        long now = SystemClock.elapsedRealtime();
-        long previous = lastRelayAt.get();
-        if ((previous != 0 && now - previous < 20000) || !lastRelayAt.compareAndSet(previous, now)) {
-            return MeshHttp.Response.json(429, MeshHttp.error("Poczekaj 20 sekund przed kolejnym testem"));
+        if (!connected || !"member".equals(role) || !relayEnabled) {
+            return MeshHttp.Response.json(403, MeshHttp.error("Uczestnik nie zezwolił na użycie danych komórkowych."));
         }
-        NetworkLease lease = acquireCellular();
+        // One cellular fetch at a time per consenting member. This avoids
+        // concurrent requests overrunning the user-selected data cap.
+        if (!relaySlot.tryAcquire()) return MeshHttp.Response.json(429, MeshHttp.error("Telefon jest już zajęty pobieraniem fragmentu."));
         try {
-            HttpURLConnection conn = openCellular(lease.network, "https://speed.cloudflare.com/__down?bytes=" + PROBE_BYTES, "GET");
-            if (conn.getResponseCode() != 200) throw new IOException("Serwer testowy jest niedostępny");
-            ByteArrayOutputStream data = new ByteArrayOutputStream(PROBE_BYTES);
-            try (InputStream in = conn.getInputStream()) {
-                byte[] chunk = new byte[8192];
-                int n;
-                while ((n = in.read(chunk)) >= 0 && data.size() < PROBE_BYTES) {
-                    data.write(chunk, 0, Math.min(n, PROBE_BYTES - data.size()));
+            java.util.function.BooleanSupplier allowed = () -> connected && "member".equals(role) &&
+                relayEnabled && relaySpentBytes.get() < relayBudgetBytes && !Thread.currentThread().isInterrupted();
+            if (probe) {
+                long now = SystemClock.elapsedRealtime();
+                long previous = lastRelayAt.get();
+                if ((previous != 0 && now - previous < 20000) || !lastRelayAt.compareAndSet(previous, now)) {
+                    return MeshHttp.Response.json(429, MeshHttp.error("Poczekaj 20 sekund przed następnym testem."));
                 }
-            } finally { conn.disconnect(); }
-            if (data.size() < 32768) throw new IOException("Serwer zwrócił za mało danych");
-            relayBytes += data.size();
-            return MeshHttp.Response.bytes(data.toByteArray());
-        } finally { lease.close(connectivity); }
+                if (relayBudgetBytes - relaySpentBytes.get() < PROBE_BYTES) {
+                    return MeshHttp.Response.json(429, MeshHttp.error("Limit danych na telefonie został wykorzystany."));
+                }
+                NetworkLease lease = acquireCellular();
+                try {
+                    HttpURLConnection conn = openCellular(lease.network,
+                        "https://speed.cloudflare.com/__down?bytes=" + PROBE_BYTES, "GET");
+                    try {
+                        if (conn.getResponseCode() != 200) throw new IOException("Serwer testowy jest niedostępny.");
+                        ByteArrayOutputStream data = new ByteArrayOutputStream(PROBE_BYTES);
+                        try (InputStream in = conn.getInputStream()) {
+                            byte[] buffer = new byte[8192];
+                            int n;
+                            while (data.size() < PROBE_BYTES && (n = in.read(buffer, 0,
+                                Math.min(buffer.length, PROBE_BYTES - data.size()))) >= 0) {
+                                if (!allowed.getAsBoolean()) throw new IOException("Zgoda na przekazywanie została wycofana.");
+                                relaySpentBytes.addAndGet(n);
+                                data.write(buffer, 0, n);
+                            }
+                        }
+                        if (data.size() < 32768 || !relayEnabled) throw new IOException("Test został przerwany.");
+                        relayBytes += data.size();
+                        return MeshHttp.Response.bytes(data.toByteArray());
+                    } finally { conn.disconnect(); }
+                } finally { lease.close(connectivity); }
+            }
+            JSONObject input = req.json();
+            String url = input.optString("url", "");
+            RangePlan.validateUrl(url);
+            if (metadata) {
+                if (!allowed.getAsBoolean()) return MeshHttp.Response.json(429, MeshHttp.error("Limit danych został wykorzystany."));
+                NetworkLease lease = acquireCellular();
+                try {
+                    CellularRange.Metadata info = CellularRange.probe(lease.network, url);
+                    relaySpentBytes.incrementAndGet();
+                    if (!relayEnabled) throw new IOException("Zgoda została wycofana.");
+                    JSONObject response = new JSONObject();
+                    response.put("total", info.total).put("etag", info.etag);
+                    return MeshHttp.Response.json(200, response);
+                } finally { lease.close(connectivity); }
+            }
+            long start = input.getLong("start"), total = input.getLong("total");
+            int length = input.getInt("length");
+            String etag = input.optString("etag", "");
+            if (etag.length() > 150 || length < 1 || length > RangePlan.CHUNK_BYTES ||
+                start < 0 || total < 1 || total > RangePlan.MAX_FILE_BYTES || start + length > total) {
+                return MeshHttp.Response.json(400, MeshHttp.error("Nieprawidłowy zakres bajtów."));
+            }
+            if (relayBudgetBytes - relaySpentBytes.get() < length) {
+                return MeshHttp.Response.json(429, MeshHttp.error("Limit danych na telefonie został wykorzystany."));
+            }
+            NetworkLease lease = acquireCellular();
+            try {
+                byte[] bytes = CellularRange.fetch(lease.network, url, start, length, total, etag, allowed,
+                    () -> Math.max(0, relayBudgetBytes - relaySpentBytes.get()),
+                    count -> relaySpentBytes.addAndGet(count));
+                if (!relayEnabled) throw new IOException("Zgoda na udostępnianie została wycofana.");
+                relayBytes += bytes.length;
+                return MeshHttp.Response.bytes(bytes);
+            } finally { lease.close(connectivity); }
+        } catch (Exception e) {
+            return MeshHttp.Response.json(503, MeshHttp.error("Węzeł nie mógł pobrać danych: " + safeError(e)));
+        } finally { relaySlot.release(); }
+    }
+
+    private List<MeshDownloadManager.Remote> availableRemotes() {
+        List<MeshDownloadManager.Remote> result = new ArrayList<>();
+        long now = SystemClock.elapsedRealtime();
+        for (Map.Entry<String, Peer> entry : peers.entrySet()) {
+            Peer peer = entry.getValue();
+            JSONObject node = peer.node;
+            if (now - peer.seen > PEER_TTL_MS || !node.optBoolean("relayEnabled") ||
+                !node.optBoolean("hasCellular") || node.optLong("relayRemainingBytes") < 1024) continue;
+            result.add(new MeshDownloadManager.Remote(entry.getKey(), node.optString("name", "Telefon"),
+                peer.ip, node.optLong("relayRemainingBytes"), node.optDouble("download", 0),
+                node.optInt("battery", 0), node.optBoolean("charging", false)));
+        }
+        return result;
     }
 
     /** State sent to peers: no Wi-Fi password, token or invitation. */
@@ -583,6 +732,10 @@ public class MeshBridgePlugin extends Plugin {
         out.put("invite", "host".equals(role) && connected ? makeInvite() : "");
         out.put("error", lastError);
         out.put("internetSharing", false);
+        out.put("relayEnabled", relayEnabled);
+        out.put("relayBudgetBytes", relayBudgetBytes);
+        out.put("relaySpentBytes", relaySpentBytes.get());
+        out.put("downloadJob", "host".equals(role) && downloader != null ? downloader.status() : JSONObject.NULL);
         out.put("nodes", "host".equals(role) && connected
             ? publicState().optJSONArray("nodes")
             : remoteSnapshot.optJSONArray("nodes") != null ? remoteSnapshot.optJSONArray("nodes") : new JSONArray());
@@ -604,6 +757,8 @@ public class MeshBridgePlugin extends Plugin {
             obj.put("upload", uploadMbps);
             obj.put("ping", pingMs);
             obj.put("dataShared", relayBytes / (1024.0 * 1024.0));
+            obj.put("relayEnabled", relayEnabled && connected);
+            obj.put("relayRemainingBytes", relayEnabled ? Math.max(0, relayBudgetBytes - relaySpentBytes.get()) : 0);
             obj.put("measuredAt", measuredAt);
             obj.put("hasCellular", hasCellularHardware());
         } catch (JSONException ignored) {}
@@ -623,6 +778,8 @@ public class MeshBridgePlugin extends Plugin {
         obj.put("upload", clamp(raw.optDouble("upload", 0), 0, 10000));
         obj.put("ping", clamp(raw.optInt("ping", 0), 0, 10000));
         obj.put("dataShared", clamp(raw.optDouble("dataShared", 0), 0, 1000000));
+        obj.put("relayEnabled", raw.optBoolean("relayEnabled", false));
+        obj.put("relayRemainingBytes", Math.max(0, Math.min(MAX_RELAY_BUDGET, raw.optLong("relayRemainingBytes", 0))));
         obj.put("measuredAt", Math.max(0, raw.optLong("measuredAt", 0)));
         obj.put("hasCellular", raw.optBoolean("hasCellular", false));
         return obj;
@@ -664,6 +821,8 @@ public class MeshBridgePlugin extends Plugin {
     }
 
     private void stopInternal() {
+        if (downloader != null) downloader.cancelAndClear();
+        relayEnabled = false;
         boolean wasMember = "member".equals(role);
         Network network = wifiNetwork;
         String ip = hostIp;
@@ -698,12 +857,15 @@ public class MeshBridgePlugin extends Plugin {
         pingMs = 0;
         measuredAt = 0;
         relayBytes = 0;
+        relayBudgetBytes = DEFAULT_RELAY_BUDGET;
+        relaySpentBytes.set(0);
         lastRelayAt.set(0);
     }
 
     @Override
     protected void handleOnDestroy() {
         stopInternal();
+        if (downloader != null) downloader.shutdown();
         io.shutdownNow();
         scheduler.shutdownNow();
         super.handleOnDestroy();

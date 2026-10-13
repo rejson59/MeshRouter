@@ -156,7 +156,9 @@ final class MeshHttp {
     }
 
     private static void writeResponse(OutputStream output, Response response) throws IOException {
-        String status = response.code == 200 ? "OK" : response.code == 401 ? "Unauthorized" : response.code == 404 ? "Not Found" : response.code == 429 ? "Too Many Requests" : "Bad Request";
+        String status = response.code == 200 ? "OK" : response.code == 401 ? "Unauthorized" : response.code == 403 ? "Forbidden" :
+            response.code == 404 ? "Not Found" : response.code == 429 ? "Too Many Requests" :
+            response.code == 503 ? "Service Unavailable" : "Bad Request";
         String header = "HTTP/1.1 " + response.code + " " + status + "\r\n" +
             "Content-Type: " + response.contentType + "\r\n" +
             "Content-Length: " + response.body.length + "\r\n" +
@@ -174,7 +176,7 @@ final class MeshHttp {
         Socket raw = wifiNetwork != null ? wifiNetwork.getSocketFactory().createSocket() : new Socket();
         try (Socket s = raw) {
             s.connect(new InetSocketAddress(host, port), 4000);
-            s.setSoTimeout(maxResponse > 32768 ? 22000 : 6000);
+            s.setSoTimeout(maxResponse > 32768 ? 45000 : 9000);
             byte[] body = json == null ? new byte[0] : json.toString().getBytes(StandardCharsets.UTF_8);
             if (body.length > 16384) throw new IOException("Request too large");
             String head = method + " " + path + " HTTP/1.1\r\n" +
@@ -191,7 +193,10 @@ final class MeshHttp {
             String status = readLine(in, 2048);
             if (status == null || !status.startsWith("HTTP/1.")) throw new IOException("Invalid server response");
             String[] parts = status.split(" ");
-            if (parts.length < 2 || !"200".equals(parts[1])) throw new IOException("Mesh server replied: " + status);
+            if (parts.length < 2) throw new IOException("Invalid server status: " + status);
+            int code;
+            try { code = Integer.parseInt(parts[1]); }
+            catch (NumberFormatException e) { throw new IOException("Invalid server status", e); }
             int contentLength = -1;
             for (int i = 0; i < 40; i++) {
                 String line = readLine(in, 4096);
@@ -204,8 +209,19 @@ final class MeshHttp {
                 }
                 if (i == 39) throw new IOException("Too many response headers");
             }
-            if (contentLength < 0 || contentLength > maxResponse) throw new IOException("Unexpected response size");
-            return readExactly(in, contentLength);
+            if (contentLength < 0 || contentLength > (code == 200 ? maxResponse : 32768)) {
+                throw new IOException("Unexpected response size");
+            }
+            byte[] response = readExactly(in, contentLength);
+            if (code != 200) {
+                String reason = "HTTP " + code;
+                try {
+                    String text = new JSONObject(new String(response, StandardCharsets.UTF_8)).optString("error", "");
+                    if (!text.isEmpty()) reason += ": " + text.substring(0, Math.min(text.length(), 180));
+                } catch (JSONException ignored) {}
+                throw new IOException(reason);
+            }
+            return response;
         }
     }
 

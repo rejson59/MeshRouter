@@ -39,11 +39,11 @@ jobs:
           npm test
       - name: Bundle web UI into Android
         run: npm run cap:sync
-      - name: Assemble installable debug APK
+      - name: Test range scheduling and assemble installable debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon :app:assembleDebug
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -73,12 +73,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           mv apk/app-debug.apk apk/MeshRouter-debug.apk
-          if gh release view v0.1.0-preview >/dev/null 2>&1; then
-            gh release upload v0.1.0-preview apk/MeshRouter-debug.apk --clobber
+          if gh release view v0.2.0-preview >/dev/null 2>&1; then
+            gh release upload v0.2.0-preview apk/MeshRouter-debug.apk --clobber
           else
-            gh release create v0.1.0-preview apk/MeshRouter-debug.apk \
+            gh release create v0.2.0-preview apk/MeshRouter-debug.apk \
               --target "$GITHUB_SHA" \
-              --title 'MeshRouter 0.1.0 — testowy APK Android' \
-              --notes 'Wersja testowa Android 8.0+. Lokalna sieć Wi-Fi, prawdziwe parametry telefonów i test przekazania danych między urządzeniami. NIE jest to otwarty hotspot ani ogólnosystemowe łączenie łączy; niezweryfikowane jeszcze na dwóch fizycznych telefonach. APK ma tymczasowy podpis debugowy — przed instalacją nowego buildu może być konieczne odinstalowanie starego.' \
+              --title 'MeshRouter 0.2.0 — wspólne pobieranie (testowy APK)' \
+              --notes 'Android 8.0+. Pobieranie publicznych plików HTTPS Range (do 32 MiB) w częściach przez osobne łącza komórkowe telefonów, składanie i SHA-256 u hosta. Każdy uczestnik, również host, włącza osobną zgodę i limit pobranych bajtów. Ta funkcja nie jest ogólnosystemowym bondingiem/VPN. Automatyczne testy przeszły, ale połączenie na dwóch fizycznych telefonach i zgodność serwerów Range nie zostały jeszcze potwierdzone. APK debug ma tymczasowy podpis; aktualizacja poprzedniego buildu może wymagać odinstalowania starego.' \
               --prerelease
           fi
