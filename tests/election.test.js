@@ -61,6 +61,7 @@ test('demo-only illustrative speed model is not a real link bond', () => {
 
 test('speed and signal formatters handle bounds and Gbps', () => {
   assert.deepEqual(formatSpeed(1234), { value: '1.23', unit: 'Gbps' });
+  assert.deepEqual(formatSpeed(0), { value: '0', unit: 'Mbps' });
   assert.equal(signalLevel(0), 0);
   assert.equal(signalLevel(-65), 3);
   assert.equal(signalLevel(100), 4);

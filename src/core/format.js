@@ -1,7 +1,8 @@
 // Formatting helpers shared across the app.
 
 export function formatSpeed(mbps) {
-  const v = Number(mbps) || 0;
+  const v = Math.max(0, Number(mbps) || 0);
+  if (v === 0) return { value: '0', unit: 'Mbps' };
   if (v >= 1000) return { value: (v / 1000).toFixed(2).replace(/\.00$/, ''), unit: 'Gbps' };
   if (v >= 1) return { value: Math.round(v).toString(), unit: 'Mbps' };
   return { value: Math.round(v * 1000).toString(), unit: 'Kbps' };
