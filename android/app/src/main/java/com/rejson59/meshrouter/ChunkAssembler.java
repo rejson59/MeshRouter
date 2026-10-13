@@ -50,11 +50,16 @@ final class ChunkAssembler {
         ExecutorService pool = Executors.newFixedThreadPool(workers.size());
         List<Future<?>> futures = new ArrayList<>();
         try {
-            for (Worker worker : workers) {
-                // Reserve one starting fragment per link, so no fast thread
-                // drains the queue before slower peers begin contributing.
-                RangePlan.Chunk first = queue.poll();
-                if (first == null) break;
+            // Reserve every initial fragment BEFORE launching any thread.
+            // Reserving inside the submit loop let the first fast worker drain
+            // the queue before the next worker had even been given a chunk.
+            List<RangePlan.Chunk> firstChunks = new ArrayList<>();
+            for (int i = 0; i < workers.size() && !queue.isEmpty(); i++) {
+                firstChunks.add(queue.remove());
+            }
+            for (int i = 0; i < firstChunks.size(); i++) {
+                Worker worker = workers.get(i);
+                RangePlan.Chunk first = firstChunks.get(i);
                 futures.add(pool.submit(() -> {
                     RangePlan.Chunk chunk = first;
                     int consecutiveErrors = 0;

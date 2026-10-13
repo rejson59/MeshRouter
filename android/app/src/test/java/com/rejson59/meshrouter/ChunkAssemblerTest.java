@@ -12,19 +12,23 @@ import static org.junit.Assert.*;
 public class ChunkAssemblerTest {
     @Test public void joinsParallelWorkersExactly() throws Exception {
         byte[] source = source(2 * RangePlan.CHUNK_BYTES + 51);
-        byte[] result = new byte[source.length];
-        AtomicInteger a = new AtomicInteger();
-        AtomicInteger b = new AtomicInteger();
-        List<ChunkAssembler.Worker> workers = Arrays.asList(
-            new ChunkAssembler.Worker("a", -1, chunk -> { a.incrementAndGet(); return slice(source, chunk); }),
-            new ChunkAssembler.Worker("b", -1, chunk -> { b.incrementAndGet(); return slice(source, chunk); })
-        );
-        ChunkAssembler.download(source.length, workers,
-            (offset, bytes) -> System.arraycopy(bytes, 0, result, (int) offset, bytes.length),
-            (worker, count) -> {}, () -> false, 10000);
-        assertArrayEquals(source, result);
-        assertTrue(a.get() >= 1);
-        assertTrue(b.get() >= 1);
+        // The first worker can finish a chunk before its peer is scheduled;
+        // both must still receive a reserved fragment on every iteration.
+        for (int iteration = 0; iteration < 30; iteration++) {
+            byte[] result = new byte[source.length];
+            AtomicInteger a = new AtomicInteger();
+            AtomicInteger b = new AtomicInteger();
+            List<ChunkAssembler.Worker> workers = Arrays.asList(
+                new ChunkAssembler.Worker("a", -1, chunk -> { a.incrementAndGet(); return slice(source, chunk); }),
+                new ChunkAssembler.Worker("b", -1, chunk -> { b.incrementAndGet(); return slice(source, chunk); })
+            );
+            ChunkAssembler.download(source.length, workers,
+                (offset, bytes) -> System.arraycopy(bytes, 0, result, (int) offset, bytes.length),
+                (worker, count) -> {}, () -> false, 10000);
+            assertArrayEquals("run " + iteration, source, result);
+            assertTrue("worker a idle on run " + iteration, a.get() >= 1);
+            assertTrue("worker b idle on run " + iteration, b.get() >= 1);
+        }
     }
 
     @Test public void retriesOnOtherPeerAfterFailure() throws Exception {
