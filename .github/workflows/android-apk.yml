@@ -107,6 +107,6 @@ jobs:
             gh release create v0.2.0-preview apk/MeshRouter-debug.apk \
               --target "$GITHUB_SHA" \
               --title 'MeshRouter 0.2.0 — wspólne pobieranie (testowy APK)' \
-              --notes 'Android 8.0+. Pobieranie publicznych plików HTTPS Range (do 32 MiB) w częściach przez osobne łącza komórkowe telefonów, składanie i SHA-256 u hosta. Każdy uczestnik, również host, włącza osobną zgodę i limit pobranych bajtów. Ta funkcja nie jest ogólnosystemowym bondingiem/VPN. Automatyczne testy przeszły, ale połączenie na dwóch fizycznych telefonach i zgodność serwerów Range nie zostały jeszcze potwierdzone. APK debug ma tymczasowy podpis; aktualizacja poprzedniego buildu może wymagać odinstalowania starego.' \
+              --notes 'Android 8.0+. Pobieranie publicznych plików HTTPS Range (do 32 MiB) w częściach przez osobne łącza komórkowe telefonów, składanie i SHA-256 u hosta. Każdy uczestnik, również host, włącza osobną zgodę i limit bajtów treści (bez narzutu TLS/operatora). Ta funkcja nie jest ogólnosystemowym bondingiem/VPN. Automatyczne testy przeszły, ale połączenie na dwóch fizycznych telefonach i zgodność serwerów Range nie zostały jeszcze potwierdzone. APK debug ma tymczasowy podpis; aktualizacja poprzedniego buildu może wymagać odinstalowania starego.' \
               --prerelease
           fi
