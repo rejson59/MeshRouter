@@ -8,6 +8,15 @@ import { formatSpeed, speedLabel, batteryColor, signalLevel, initials } from './
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 let downloadSubmitting = false;
+let demoTransferTimer = null;
+const DEMO_TRANSFER_STEPS = [
+  [16, 'Symulacja · telefon A otrzymuje fragment 1/6.'],
+  [33, 'Symulacja · telefon B otrzymuje fragment 2/6.'],
+  [51, 'Symulacja · przykładowe fragmenty spływają do hosta.'],
+  [72, 'Symulacja · pozostałe fragmenty są składane.'],
+  [91, 'Symulacja · obliczanie przykładowej sumy SHA-256.'],
+  [100, 'Koniec symulacji. Żadnego pliku nie pobrano ani nie zapisano.']
+];
 
 function boot() {
   document.documentElement.setAttribute('data-theme', store.theme);
@@ -104,6 +113,7 @@ async function handleAction(action, element) {
     }
     case 'run-test': await runTest(); break;
     case 'test-relay': await testRelay(); break;
+    case 'demo-download': simulateDemoTransfer(); break;
     case 'start-download': await startDownload(); break;
     case 'cancel-download': await store.cancelDownload(); break;
     case 'share-download': await store.shareDownload(); break;
@@ -242,6 +252,38 @@ async function testRelay() {
   }
 }
 
+function stopDemoTransfer() {
+  if (demoTransferTimer) clearInterval(demoTransferTimer);
+  demoTransferTimer = null;
+  const button = $('#demoTransferBtn');
+  if (button) { button.disabled = false; button.textContent = 'Pokaż symulację pobierania'; }
+}
+
+function simulateDemoTransfer() {
+  if (store.isNative || store.status !== 'connected') {
+    throw new Error('Ta symulacja jest dostępna tylko w połączonym demie przeglądarkowym.');
+  }
+  if (demoTransferTimer) return;
+  const button = $('#demoTransferBtn');
+  button.disabled = true;
+  button.textContent = 'Trwa symulacja…';
+  $('#demoTransferProgress').value = 0;
+  $('#demoTransferPercent').textContent = '0%';
+  $('#demoTransferInfo').textContent = 'Symulacja · nie używamy żadnego połączenia sieciowego.';
+  let step = 0;
+  demoTransferTimer = setInterval(() => {
+    if (store.status !== 'connected' || store.isNative) { stopDemoTransfer(); return; }
+    const [percent, description] = DEMO_TRANSFER_STEPS[step++];
+    $('#demoTransferProgress').value = percent;
+    $('#demoTransferPercent').textContent = `${percent}%`;
+    $('#demoTransferInfo').textContent = description;
+    if (step === DEMO_TRANSFER_STEPS.length) {
+      stopDemoTransfer();
+      button.textContent = 'Powtórz symulację';
+    }
+  }, 600);
+}
+
 async function startDownload() {
   if (downloadSubmitting) return;
   const url = $('#downloadUrlInput').value.trim();
@@ -270,6 +312,7 @@ async function handleModal(kind) {
   $('#modalBackdrop').hidden = true;
   if (kind !== 'confirm') return;
   try {
+    stopDemoTransfer();
     await store.leave();
     store.go('home');
     toast('Opuszczono siatkę');

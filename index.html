@@ -272,9 +272,20 @@
             </div>
             <span class="test-card__icon" aria-hidden="true">↓</span>
           </div>
-          <p class="download-explainer" id="downloadDemo">
-            Tylko podgląd. Przeglądarka nie pobiera pliku przez telefony — zainstaluj APK na co najmniej dwóch Androidach, aby wypróbować funkcję.
-          </p>
+          <div class="download-demo" id="downloadDemo">
+            <p class="download-explainer"><strong>WYŁĄCZNIE DEMO.</strong> Poniżej zobaczysz przykładowy przebieg — przeglądarka nie łączy telefonów, nie korzysta z danych komórkowych ani nie tworzy pliku.</p>
+            <div class="download-demo__panel soft-inset">
+              <div class="download-demo__row"><span>Zgoda na udział</span><strong>wyłączona domyślnie</strong></div>
+              <div class="download-demo__row"><span>Limit na telefon</span><strong>25 MiB · przykład</strong></div>
+              <div class="download-demo__progress" aria-label="Przykładowy postęp pobierania, tylko wizualizacja">
+                <div class="download-demo__head"><span>SYMULACJA INTERFEJSU</span><strong id="demoTransferPercent">0%</strong></div>
+                <progress id="demoTransferProgress" max="100" value="0" aria-label="Symulowany postęp, bez pobierania pliku"></progress>
+                <small id="demoTransferInfo" aria-live="polite">Naciśnij przycisk, aby zobaczyć przykładowy postęp.</small>
+              </div>
+            </div>
+            <button class="btn btn--ghost btn--pill btn--block" id="demoTransferBtn" type="button" data-action="demo-download">Pokaż symulację pobierania</button>
+            <p class="download-note">Prawdziwe zgody, limity i transfer pojawiają się <strong>tylko w APK na Androidzie</strong>.</p>
+          </div>
           <div id="nativeDownloadControls" hidden>
             <div class="relay-settings soft-inset">
               <label class="relay-consent" for="relayConsent">

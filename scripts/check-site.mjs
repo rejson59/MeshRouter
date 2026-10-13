@@ -12,6 +12,8 @@ assert.match(page, /href="\.\/demo\/"/);
 assert.match(page, /src="\.\/demo\/\?preview=dashboard"/);
 assert.match(page, /Demo w przeglądarce tylko pokazuje interfejs/);
 assert.match(demo, /id="downloadDemo"/);
+assert.match(demo, /id="demoTransferBtn"[^>]*data-action="demo-download"/);
+assert.match(demo, /WYŁĄCZNIE DEMO/);
 assert.match(demo, /id="nativeDownloadControls" hidden/);
 assert.equal(app, demo, 'The published demo must be the actual browser app build, not a mock');
 

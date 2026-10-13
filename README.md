@@ -6,7 +6,7 @@ MeshRouter to **prototyp aplikacji Android** (API 26+, Android 8.0+) i osobne, w
 
 ## Strona i demo
 
-Strona z opisem aplikacji, linkiem do aktualnego APK i **osadzonym interaktywnym demo** jest gotowa do podglądu (`npm run build:site && npm run site:preview`). Docelowy adres po aktywowaniu GitHub Pages to [**rejson59.github.io/MeshRouter/**](https://rejson59.github.io/MeshRouter/), a pełne demo będzie pod [`/demo/`](https://rejson59.github.io/MeshRouter/demo/). Strona jest statyczna; demo tworzy wyłącznie symulowane urządzenia i pomiary. Tylko instalowana aplikacja Android korzysta z natywnych sieci i pobierania plików. W ramce pulpit demo otwiera się automatycznie; samodzielnie otwarta wersja startuje od ekranu „Utwórz/Dołącz”.
+Strona z opisem aplikacji, linkiem do aktualnego APK i **osadzonym interaktywnym demo** jest gotowa do podglądu (`npm run build:site && npm run site:preview`). Docelowy adres po aktywowaniu GitHub Pages to [**rejson59.github.io/MeshRouter/**](https://rejson59.github.io/MeshRouter/), a pełne demo będzie pod [`/demo/`](https://rejson59.github.io/MeshRouter/demo/). Strona jest statyczna; demo tworzy wyłącznie symulowane urządzenia, pomiary i — po kliknięciu — przykładowy postęp transferu. **Nie pobiera przy tym pliku.** Tylko instalowana aplikacja Android korzysta z natywnych sieci i pobierania plików. W ramce pulpit demo otwiera się automatycznie; samodzielnie otwarta wersja startuje od ekranu „Utwórz/Dołącz”.
 
 ## Co działa w APK
 
