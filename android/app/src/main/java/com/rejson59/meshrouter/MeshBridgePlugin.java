@@ -62,6 +62,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -120,6 +121,7 @@ public class MeshBridgePlugin extends Plugin {
     private volatile int pingMs = 0;
     private volatile long measuredAt = 0;
     private volatile long relayBytes = 0;
+    private final AtomicLong lastRelayAt = new AtomicLong(0);
 
     private static final class Peer {
         JSONObject node;
@@ -523,8 +525,15 @@ public class MeshBridgePlugin extends Plugin {
 
     private MeshHttp.Response handleRelay(MeshHttp.Request req, String ip) throws Exception {
         if (!"GET".equals(req.method) || !"/probe".equals(req.path)) return MeshHttp.Response.json(404, MeshHttp.error("Nie znaleziono"));
-        if (!authorized(req.token())) return MeshHttp.Response.json(401, MeshHttp.error("Brak dostępu"));
+        if (!authorized(req.token()) || !ip.equals(hostIp)) return MeshHttp.Response.json(401, MeshHttp.error("Brak dostępu"));
         if (!connected || !"member".equals(role)) return MeshHttp.Response.json(400, MeshHttp.error("Węzeł nie jest połączony"));
+        // The test consumes cellular data. Only the host may request it,
+        // at most once every 20 seconds even if the shared invite leaks.
+        long now = SystemClock.elapsedRealtime();
+        long previous = lastRelayAt.get();
+        if ((previous != 0 && now - previous < 20000) || !lastRelayAt.compareAndSet(previous, now)) {
+            return MeshHttp.Response.json(429, MeshHttp.error("Poczekaj 20 sekund przed kolejnym testem"));
+        }
         NetworkLease lease = acquireCellular();
         try {
             HttpURLConnection conn = openCellular(lease.network, "https://speed.cloudflare.com/__down?bytes=" + PROBE_BYTES, "GET");
@@ -689,6 +698,7 @@ public class MeshBridgePlugin extends Plugin {
         pingMs = 0;
         measuredAt = 0;
         relayBytes = 0;
+        lastRelayAt.set(0);
     }
 
     @Override
@@ -717,21 +727,26 @@ public class MeshBridgePlugin extends Plugin {
         for (int attempt = 0; attempt < 10; attempt++) {
             try {
                 Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-                List<String> candidates = new ArrayList<>();
+                String best = null;
+                int bestScore = -1;
                 while (interfaces.hasMoreElements()) {
                     NetworkInterface nif = interfaces.nextElement();
                     if (!nif.isUp() || nif.isLoopback() || nif.isVirtual()) continue;
                     String name = nif.getName().toLowerCase();
-                    if (!(name.contains("wlan") || name.contains("ap") || name.contains("softap") || name.contains("swlan"))) continue;
+                    if (!(name.contains("wlan") || name.contains("ap") || name.contains("swlan"))) continue;
                     Enumeration<InetAddress> addresses = nif.getInetAddresses();
                     while (addresses.hasMoreElements()) {
                         InetAddress a = addresses.nextElement();
-                        if (a instanceof Inet4Address && a.isSiteLocalAddress()) candidates.add(a.getHostAddress());
+                        if (!(a instanceof Inet4Address) || !a.isSiteLocalAddress()) continue;
+                        String address = a.getHostAddress();
+                        int score = (name.startsWith("ap") || name.contains("softap") || name.contains("swlan") ? 100 : 0)
+                            + (address.endsWith(".1") ? 50 : 0)
+                            + (address.startsWith("192.168.") ? 20 : 0)
+                            + (name.contains("wlan") ? 10 : 0);
+                        if (score > bestScore) { best = address; bestScore = score; }
                     }
                 }
-                // Hotspot interfaces on most Android devices are 192.168.x.x.
-                for (String address : candidates) if (address.startsWith("192.168.")) return address;
-                if (!candidates.isEmpty()) return candidates.get(0);
+                if (best != null) return best;
             } catch (Exception ignored) {}
             SystemClock.sleep(250);
         }
@@ -793,6 +808,9 @@ public class MeshBridgePlugin extends Plugin {
     private boolean hasCellularHardware() { return getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY); }
 
     private int signal() {
+        // The host's Wi-Fi client RSSI, if present, would describe some other
+        // network, not the signal of its own LocalOnlyHotspot.
+        if ("host".equals(role)) return 0;
         try {
             WifiInfo info = wifi == null ? null : wifi.getConnectionInfo();
             int rssi = info == null ? -127 : info.getRssi();

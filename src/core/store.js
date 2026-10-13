@@ -185,10 +185,17 @@ export const store = {
     return result;
   },
 
+  getRelayTarget() {
+    // Even when the host wins the election, a measured remote peer can
+    // demonstrate the real application-level cellular → Wi-Fi data path.
+    return this.ranked.find((r) => r.eligible && r.node.id !== this.selfId)?.node || null;
+  },
+
   async testRelay() {
-    if (!this.isNative || this.role !== 'host' || !this.gateway) throw new Error('Test wymaga hosta i aktywnego lidera.');
-    if (this.gateway.id === this.selfId) throw new Error('Liderem jest host — wybierz test prędkości własnego łącza.');
-    const result = await bridge.testRelay(this.gateway.id);
+    if (!this.isNative || this.role !== 'host') throw new Error('Test przekazania wymaga hosta.');
+    const peer = this.getRelayTarget();
+    if (!peer) throw new Error('Najpierw zmierz łącze komórkowe na drugim telefonie.');
+    const result = await bridge.testRelay(peer.id);
     this.relayResult = result;
     this.emit();
     return result;

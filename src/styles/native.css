@@ -12,6 +12,7 @@
 .join-instructions { margin: 0 0 18px; color: var(--text-dim); font-size: 14px; line-height: 1.6; }
 .join-instructions strong { color: var(--accent); }
 .invite-input { display: block; width: 100%; resize: vertical; min-height: 96px; line-height: 1.5; margin-top: 8px; font-size: 14px; }
+.paste-btn { font-size: 13px; padding: 11px 14px; margin-top: 14px; }
 .mode-strip {
   padding: 9px 14px;
   border-radius: var(--radius-pill);
@@ -23,6 +24,7 @@
   letter-spacing: 0.15px;
 }
 .mode-strip--native { background: var(--accent-soft); color: var(--accent); }
+.mode-strip--error { background: rgba(251, 113, 133, 0.14); color: var(--danger); }
 .mesh-details, .test-card { padding: 20px; }
 .details-heading, .test-card__top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .details-heading__icon, .test-card__icon {

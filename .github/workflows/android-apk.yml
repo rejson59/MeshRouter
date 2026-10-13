@@ -4,7 +4,14 @@ on:
   push:
     branches:
       - arena/b8909b4b-meshrouter
+      - main
   workflow_dispatch:
+    inputs:
+      publish_preview:
+        description: 'Opublikuj testowy APK jako GitHub prerelease'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -44,3 +51,30 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_preview
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: MeshRouter-debug-apk
+          path: apk
+      - name: Publish clearly labelled preview APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mv apk/app-debug.apk apk/MeshRouter-debug.apk
+          if gh release view v0.1.0-preview >/dev/null 2>&1; then
+            gh release upload v0.1.0-preview apk/MeshRouter-debug.apk --clobber
+          else
+            gh release create v0.1.0-preview apk/MeshRouter-debug.apk \
+              --target "$GITHUB_SHA" \
+              --title 'MeshRouter 0.1.0 — testowy APK Android' \
+              --notes 'Wersja testowa Android 8.0+. Lokalna sieć Wi-Fi, prawdziwe parametry telefonów i test przekazania danych między urządzeniami. NIE jest to otwarty hotspot ani ogólnosystemowe łączenie łączy; niezweryfikowane jeszcze na dwóch fizycznych telefonach. APK ma tymczasowy podpis debugowy — przed instalacją nowego buildu może być konieczne odinstalowanie starego.' \
+              --prerelease
+          fi

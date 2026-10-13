@@ -1,6 +1,8 @@
 import './styles/styles.css';
 import './styles/native.css';
 import { store } from './core/store.js';
+import { Share } from '@capacitor/share';
+import { Clipboard } from '@capacitor/clipboard';
 import { formatSpeed, speedLabel, batteryColor, signalLevel, initials } from './core/format.js';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -63,6 +65,13 @@ async function handleAction(action, element) {
     case 'back': store.go('home'); break;
     case 'start-create': await startCreate(); break;
     case 'join-invite': await joinInvite(); break;
+    case 'paste-invite': {
+      const clip = await Clipboard.read();
+      if (!clip.value?.includes('MR1:')) throw new Error('W schowku nie ma zaproszenia MR1:.');
+      $('#inviteInput').value = clip.value;
+      toast('Zaproszenie wklejone', 'good');
+      break;
+    }
     case 'select-network': {
       const net = store.foundNetworks.find((n) => n.id === element.dataset.id);
       if (net) await joinNetwork(net, $('#joinNameInput').value.trim() || guessSelfName());
@@ -227,12 +236,26 @@ async function shareInvite() {
   const text = store.isNative
     ? `Dołącz do mojej siatki MeshRouter „${store.meshName}”. Zainstaluj MeshRouter na Androidzie, wybierz „Dołącz” i wklej zaproszenie:\n${store.invite}`
     : `Zobacz pokaz MeshRouter — ta strona to tylko DEMO: ${location.href}`;
-  if (navigator.share) {
+  if (store.isNative) {
+    // Android WebView does not reliably expose navigator.share/clipboard.
+    // Use the native Share Sheet; a native clipboard fallback is guaranteed.
+    try {
+      const available = await Share.canShare();
+      if (available.value) {
+        await Share.share({ title: 'MeshRouter — zaproszenie', text, dialogTitle: 'Przekaż zaproszenie' });
+        return;
+      }
+    } catch (e) {
+      if (/cancel|anulowan/i.test(message(e))) return;
+    }
+    await Clipboard.write({ string: text });
+    toast('Zaproszenie skopiowane do schowka', 'good');
+  } else if (navigator.share) {
     try { await navigator.share({ title: 'MeshRouter', text }); }
     catch (e) { if (e.name !== 'AbortError') throw e; }
   } else if (navigator.clipboard) {
     await navigator.clipboard.writeText(text);
-    toast('Zaproszenie skopiowane do schowka', 'good');
+    toast('Link demo skopiowany do schowka', 'good');
   } else {
     throw new Error('Udostępnianie i schowek są niedostępne na tym urządzeniu.');
   }
@@ -277,9 +300,12 @@ function renderDashboard() {
     : (store.role === 'host' ? 'host pokazowy' : 'członek demo');
   const mode = $('#modeStrip');
   mode.classList.toggle('mode-strip--native', store.isNative);
-  mode.textContent = store.isNative
-    ? 'Prawdziwa sieć lokalna · internet całego telefonu nie jest współdzielony'
-    : 'Tryb DEMO — urządzenia i prędkości są symulowane';
+  mode.classList.toggle('mode-strip--error', store.isNative && !!store.nativeError);
+  mode.textContent = store.nativeError && store.isNative
+    ? `Problem z połączeniem: ${store.nativeError}`
+    : store.isNative
+      ? 'Prawdziwa sieć lokalna · internet całego telefonu nie jest współdzielony'
+      : 'Tryb DEMO — urządzenia i prędkości są symulowane';
   $('#gaugeLabel').textContent = store.isNative ? 'suma pomiarów łączy*' : 'pokazowa prędkość';
   $('#statDownLabel').textContent = store.isNative ? 'Zmierzono ↓' : 'Pobieranie';
   $('#gatewayLabel').textContent = store.isNative ? 'Rekomendowany przekaźnik · złoty środek' : 'Pokazowy główny ruter';
@@ -316,7 +342,7 @@ function renderDashboard() {
   $('#testHint').textContent = store.isNative
     ? 'Test korzysta z danych komórkowych. *Suma pomiarów nie oznacza połączenia łączy dla innych aplikacji.'
     : 'To wizualizacja. W APK pomiary pobierane są z prawdziwych telefonów.';
-  $('#testRelayBtn').hidden = !store.isNative || store.role !== 'host' || !store.gateway || store.gateway.id === store.selfId;
+  $('#testRelayBtn').hidden = !store.isNative || store.role !== 'host' || !store.getRelayTarget();
   $('#footerShareBtn').hidden = store.isNative;
   renderDevices();
   $('#deviceCount').textContent = String(store.nodes.length);

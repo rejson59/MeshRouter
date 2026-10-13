@@ -18,13 +18,13 @@ MeshRouter to **prototyp działającej aplikacji Android** (API 26+, Android 8.0
 
 Wymaga Androida 8.0+ i działającego Wi‑Fi; do pomiaru i testu przekazania potrzebne są aktywne dane komórkowe. Wersja debug jest podpisana **kluczem debugowym**, nadaje się do testów, nie do wydania w Google Play.
 
-1. Otwórz zakładkę [Actions → Build Android APK](https://github.com/rejson59/MeshRouter/actions/workflows/android-apk.yml) na GitHubie, wybierz zielony przebieg zakończony sukcesem.
-2. W sekcji **Artifacts** pobierz `MeshRouter-debug-apk`, rozpakuj archiwum i zainstaluj `app-debug.apk` na telefonie (włącz zezwolenie „Instaluj nieznane aplikacje” dla użytej przeglądarki/menedżera plików).
+1. Pobierz [MeshRouter-debug.apk — wersja testowa](https://github.com/rejson59/MeshRouter/releases/download/v0.1.0-preview/MeshRouter-debug.apk). Alternatywnie: [Actions → Build Android APK](https://github.com/rejson59/MeshRouter/actions/workflows/android-apk.yml) → zielony przebieg → **Artifacts** → `MeshRouter-debug-apk` (rozpakuj ZIP).
+2. Zainstaluj APK na obu telefonach (włącz zezwolenie „Instaluj nieznane aplikacje” dla użytej przeglądarki/menedżera plików). To **build debug**; po zmianie podpisu może wymagać odinstalowania starej wersji przed aktualizacją.
 3. Na telefonie A: **Utwórz** → uprawnienia Wi‑Fi/lokalizacji → **Udostępnij zaproszenie**.
-4. Na telefonie B: **Dołącz** → wklej całe `MR1:…` → potwierdź systemowy monit połączenia Wi‑Fi. Telefony muszą być w zasięgu; na niektórych modelach trzeba włączyć Usługi lokalizacji, Wi‑Fi i dane komórkowe w ustawieniach.
-5. Na każdym telefonie włącz **Zmierz moje łącze** (test zużywa dane). Host może wybrać **Sprawdź przekaźnik** jeżeli algorytm poleca inny telefon.
+4. Na telefonie B: **Dołącz** → **Wklej ze schowka** albo wklej całe `MR1:…` → potwierdź systemowy monit połączenia Wi‑Fi. Telefony muszą być w zasięgu; na niektórych modelach trzeba włączyć Usługi lokalizacji, Wi‑Fi i dane komórkowe w ustawieniach.
+5. Na każdym telefonie włącz **Zmierz moje łącze** (test zużywa dane). Host może wybrać **Sprawdź przekaźnik**, jeśli drugi telefon wykonał pomiar.
 
-> Wygenerowany APK pochodzi z workflow na bieżącym branchu. Przy pierwszym uruchomieniu repozytorium workflow musi zostać wykonany, zanim pojawi się artefakt. Artefakty GitHub Actions wygasają po 14 dniach i mogą wymagać zalogowania na GitHubie.
+> Wygenerowany APK pochodzi z workflow na tym branchu. Artefakty GitHub Actions wygasają po 14 dniach i mogą wymagać zalogowania; prerelease udostępnia trwalszy link do pliku.
 
 ## Rozwój lokalny
 

@@ -156,7 +156,7 @@ final class MeshHttp {
     }
 
     private static void writeResponse(OutputStream output, Response response) throws IOException {
-        String status = response.code == 200 ? "OK" : response.code == 401 ? "Unauthorized" : response.code == 404 ? "Not Found" : "Bad Request";
+        String status = response.code == 200 ? "OK" : response.code == 401 ? "Unauthorized" : response.code == 404 ? "Not Found" : response.code == 429 ? "Too Many Requests" : "Bad Request";
         String header = "HTTP/1.1 " + response.code + " " + status + "\r\n" +
             "Content-Type: " + response.contentType + "\r\n" +
             "Content-Length: " + response.body.length + "\r\n" +
