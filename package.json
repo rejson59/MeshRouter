@@ -1,7 +1,7 @@
 {
   "name": "meshrouter",
-  "version": "1.0.0",
-  "description": "MeshRouter — lokalna sieć Android i test przekazania danych przez telefony; oddzielne demo web.",
+  "version": "0.2.0-preview",
+  "description": "MeshRouter — Android LAN mesh and opt-in parallel cellular file downloads; separate visual web demo.",
   "type": "module",
   "private": true,
   "scripts": {

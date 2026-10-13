@@ -53,7 +53,7 @@ function bindEvents() {
     try {
       const limitMb = Number($('#relayLimitInput').value);
       if (!Number.isInteger(limitMb) || limitMb < 5 || limitMb > 100) {
-        throw new Error('Wybierz limit od 5 do 100 MB.');
+        throw new Error('Wybierz limit od 5 do 100 MiB.');
       }
       const enabled = $('#relayConsent').checked;
       await store.setRelayEnabled(enabled, limitMb);
@@ -394,8 +394,8 @@ function renderDownload() {
   const limit = $('#relayLimitInput');
   if (document.activeElement !== limit) limit.value = String(store.relayLimitMb);
   $('#relayBudgetText').textContent = store.relayEnabled
-    ? `Pozostało ${formatMiB(store.relayRemainingBytes)} z ${store.relayLimitMb} MB na tę sesję. Wyłączenie zgody blokuje nowe fragmenty.`
-    : `Przekazywanie wyłączone. Limit po włączeniu: ${store.relayLimitMb} MB na sesję.`;
+    ? `Pozostało ${formatMiB(store.relayRemainingBytes)} z ${store.relayLimitMb} MiB na tę sesję. Wyłączenie zgody blokuje nowe fragmenty.`
+    : `Przekazywanie wyłączone. Limit po włączeniu: ${store.relayLimitMb} MiB na sesję.`;
 
   const host = store.role === 'host';
   $('#hostDownloadControls').hidden = !host;

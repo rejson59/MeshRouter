@@ -441,7 +441,7 @@ public class MeshBridgePlugin extends Plugin {
         }
         boolean allow = Boolean.TRUE.equals(call.getBoolean("enabled", false));
         int limitMb = call.getInt("limitMb", 25);
-        if (limitMb < 5 || limitMb > 100) { call.reject("Limit musi wynosić 5–100 MB."); return; }
+        if (limitMb < 5 || limitMb > 100) { call.reject("Limit musi wynosić 5–100 MiB."); return; }
         if (allow && !hasCellularHardware()) { call.reject("Ten telefon nie ma łącza komórkowego."); return; }
         Battery b = battery();
         if (allow && !b.charging && b.level < 0.15) { call.reject("Bateria poniżej 15% — naładuj telefon przed udostępnianiem."); return; }
