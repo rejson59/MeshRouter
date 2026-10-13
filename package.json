@@ -1,0 +1,25 @@
+{
+  "name": "meshrouter",
+  "version": "1.0.0",
+  "description": "MeshRouter — lokalna sieć Android i test przekazania danych przez telefony; oddzielne demo web.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "test": "node --test tests/*.test.js",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "cap:sync": "npm run build && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/haptics": "^6.0.1",
+    "@capacitor/status-bar": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "vite": "^5.4.8"
+  }
+}

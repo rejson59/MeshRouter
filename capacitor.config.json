@@ -1,0 +1,13 @@
+{
+  "appId": "com.rejson59.meshrouter",
+  "appName": "MeshRouter",
+  "webDir": "dist",
+  "backgroundColor": "#0f1115",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "MeshBridge": {}
+  }
+}

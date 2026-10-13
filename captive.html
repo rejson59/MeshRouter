@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Pobierz MeshRouter</title>
+    <meta name="theme-color" content="#0f1115" />
+    <style>
+      :root { --accent:#4f8cff; --accent2:#7c5cff; }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      body {
+        margin:0; min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center;
+        font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif; color:#e8ecf4;
+        background:#14171d; background-image:radial-gradient(1000px 600px at 20% -10%,#1b2130,#14171d 55%,#101319);
+        padding:24px;
+      }
+      .card { max-width:420px; width:100%; text-align:center; padding:34px 26px; border-radius:30px;
+        background:#14171d; box-shadow:9px 9px 22px rgba(0,0,0,.6),-9px -9px 22px rgba(255,255,255,.045); }
+      .logo { width:74px;height:74px;margin:0 auto 16px;border-radius:22px;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 30px rgba(79,140,255,.35); }
+      .logo svg{width:40px;height:40px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+      h1{font-size:23px;margin:0 0 8px;letter-spacing:-.4px;}
+      p{color:#97a1b4;font-size:15px;line-height:1.6;margin:0 0 22px;}
+      .btn{display:block;width:100%;text-decoration:none;text-align:center;padding:16px;border-radius:999px;font-weight:700;
+        font-size:16px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;cursor:pointer;
+        box-shadow:0 10px 24px rgba(79,140,255,.3);margin-bottom:12px;}
+      .btn2{background:transparent;color:#97a1b4;box-shadow:none;border:1px solid rgba(255,255,255,.08);}
+      .note{font-size:12px;color:#6b7488;margin-top:18px;}
+      .wifi{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;font-size:13px;color:#97a1b4;margin-bottom:20px;
+        box-shadow:inset 4px 4px 9px rgba(0,0,0,.5),inset -4px -4px 9px rgba(255,255,255,.04);}
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 16 0M8 12a4 4 0 0 1 8 0M12 16.5h.01"/></svg>
+      </div>
+      <div class="wifi">📶 MeshRouter — strona informacyjna</div>
+      <h1>Dołącz do lokalnej siatki</h1>
+      <p>
+        MeshRouter łączy telefony przez lokalne Wi‑Fi. Poproś hosta o zaproszenie <strong>MR1:</strong>,
+        zainstaluj aplikację na Androidzie i wklej je w ekranie „Dołącz”.
+        Sieć jest chroniona hasłem i nie udostępnia automatycznie internetu pozostałym aplikacjom.
+      </p>
+      <a class="btn" id="dl" href="https://github.com/rejson59/MeshRouter/actions">Pobierz APK z GitHub Actions</a>
+      <a class="btn btn2" href="./index.html">Zobacz demo</a>
+      <p class="note">Ta strona nie otwiera się automatycznie jako portal logowania; Android ogranicza takie przekierowanie dla aplikacji firm trzecich.</p>
+    </div>
+    <script>
+      // Try to point the download button at the latest APK release if present.
+      fetch('https://api.github.com/repos/rejson59/MeshRouter/releases/latest')
+        .then(function(r){ return r.json(); })
+        .then(function(rel){
+          if (rel && rel.assets) {
+            var apk = rel.assets.find(function(a){ return /\.apk$/i.test(a.name); });
+            if (apk) document.getElementById('dl').href = apk.browser_download_url;
+          }
+        })
+        .catch(function(){});
+    </script>
+  </body>
+</html>

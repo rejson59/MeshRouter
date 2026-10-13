@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MeshRouter</string>
+    <string name="title_activity_main">MeshRouter</string>
+    <string name="package_name">com.rejson59.meshrouter</string>
+    <string name="custom_url_scheme">com.rejson59.meshrouter</string>
+</resources>

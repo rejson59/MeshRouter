@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="pl" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f1115" />
+    <meta
+      name="description"
+      content="MeshRouter — prawdziwa lokalna siatka na Androidzie: telefony, bateria, testy łączy komórkowych i algorytm wyboru przekaźnika. Demo w przeglądarce."
+    />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <title>MeshRouter</title>
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <!-- View: Home -->
+      <section class="view view--home" data-view="home" hidden>
+        <header class="home-header">
+          <div class="brand-mark" aria-hidden="true">
+            <span class="brand-mark__dot"></span>
+            <span class="brand-mark__dot"></span>
+            <span class="brand-mark__dot"></span>
+          </div>
+          <h1 class="brand-name">MeshRouter</h1>
+          <p class="brand-tagline">Każdy telefon to węzeł. Razem to potęga.</p>
+        </header>
+
+        <div class="home-hero soft-card">
+          <div class="home-hero__glow" aria-hidden="true"></div>
+          <div class="home-hero__icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" class="hero-svg">
+              <circle cx="32" cy="32" r="6" class="hero-node hero-node--c" />
+              <circle cx="12" cy="16" r="4" class="hero-node" />
+              <circle cx="52" cy="14" r="4" class="hero-node" />
+              <circle cx="14" cy="50" r="4" class="hero-node" />
+              <circle cx="50" cy="50" r="4" class="hero-node" />
+              <path d="M32 32 L12 16 M32 32 L52 14 M32 32 L14 50 M32 32 L50 50" class="hero-link" />
+            </svg>
+          </div>
+          <h2 class="home-hero__title">Twoje telefony. Jedna inteligentna siatka.</h2>
+          <p class="home-hero__text">
+            Połącz telefony przez lokalne Wi‑Fi. Zobacz prawdziwe węzły, ich baterie i pomiary łączy,
+            a potem sprawdź, który najlepiej nadaje się na przekaźnik.
+          </p>
+        </div>
+
+        <div class="home-actions">
+          <button class="btn btn--primary btn--pill btn--lg" data-action="create">
+            <span class="btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+            </span>
+            Utwórz MeshRouter
+          </button>
+          <button class="btn btn--ghost btn--pill btn--lg" data-action="join">
+            <span class="btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 16 0M8 12a4 4 0 0 1 8 0M12 16.5h.01" /></svg>
+            </span>
+            Dołącz do sieci
+          </button>
+        </div>
+
+        <div class="home-status soft-inset" id="homeStatus">
+          <span class="pulse-dot pulse-dot--idle"></span>
+          <span id="homeStatusText">Gotowy — brak aktywnej siatki</span>
+        </div>
+
+        <p class="home-notice" id="homeNotice" hidden>
+          Android tworzy sieć lokalną z hasłem nadawanym przez system. To nie jest otwarty hotspot z internetem
+          dla całego telefonu; test przekazywania danych działa w obrębie aplikacji.
+        </p>
+
+        <div class="home-meta">
+          <span class="chip soft-chip" id="platformChip">Wykrywanie platformy…</span>
+          <button class="chip soft-chip chip--btn" data-action="toggle-theme" id="themeChip">
+            <span class="chip__icon" aria-hidden="true">◐</span> <span id="themeLabel">Motyw</span>
+          </button>
+        </div>
+
+        <footer class="home-footer">
+          <span id="demoBadge" class="demo-badge" hidden>Tryb DEMO (przeglądarka)</span>
+        </footer>
+      </section>
+
+      <!-- View: Create -->
+      <section class="view view--create" data-view="create" hidden>
+        <header class="sub-header">
+          <button class="icon-btn soft-btn" data-action="back" aria-label="Wróć">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <h2 class="sub-title">Utwórz MeshRouter</h2>
+          <span class="sub-spacer"></span>
+        </header>
+
+        <div class="soft-card form-card">
+          <label class="field">
+            <span class="field__label">Nazwa Twojej siatki</span>
+            <input class="input soft-inset" id="meshNameInput" type="text" maxlength="24"
+              placeholder="np. Ekipa‑Katowice" autocomplete="off" />
+            <span class="field__hint" id="meshNameHint">Android sam nada SSID i hasło Wi‑Fi. Nazwę MeshRouter pokażemy uczestnikom w aplikacji.</span>
+          </label>
+
+          <label class="field">
+            <span class="field__label">Twoja nazwa w siatce</span>
+            <input class="input soft-inset" id="nodeNameInput" type="text" maxlength="20"
+              placeholder="np. Kuba" autocomplete="off" />
+          </label>
+
+          <div class="perm-list">
+            <span class="field__label">Wymagane uprawnienia</span>
+            <div class="perm-row soft-inset" data-perm="location">
+              <span class="perm-row__icon" aria-hidden="true">◎</span>
+              <div class="perm-row__body">
+                <strong>Lokalizacja</strong>
+                <small>Wymagana przez Android do skanowania Wi‑Fi</small>
+              </div>
+              <span class="perm-state" data-perm-state="location">oczekuje</span>
+            </div>
+            <div class="perm-row soft-inset" data-perm="wifi">
+              <span class="perm-row__icon" aria-hidden="true">📶</span>
+              <div class="perm-row__body">
+                <strong>Wi‑Fi / Hotspot</strong>
+                <small>Tworzenie punktu dostępowego i siatki</small>
+              </div>
+              <span class="perm-state" data-perm-state="wifi">oczekuje</span>
+            </div>
+            <div class="perm-row soft-inset" data-perm="nearby">
+              <span class="perm-row__icon" aria-hidden="true">🔗</span>
+              <div class="perm-row__body">
+                <strong>Urządzenia w pobliżu</strong>
+                <small>Wymagane do połączenia z lokalną siecią Wi‑Fi</small>
+              </div>
+              <span class="perm-state" data-perm-state="nearby">oczekuje</span>
+            </div>
+          </div>
+
+          <button class="btn btn--primary btn--pill btn--lg btn--block" data-action="start-create" id="startCreateBtn">
+            Uruchom siatkę
+          </button>
+        </div>
+      </section>
+
+      <!-- View: Join -->
+      <section class="view view--join" data-view="join" hidden>
+        <header class="sub-header">
+          <button class="icon-btn soft-btn" data-action="back" aria-label="Wróć">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <h2 class="sub-title">Dołącz do siatki</h2>
+          <span class="sub-spacer"></span>
+        </header>
+
+        <div class="soft-card form-card">
+          <div id="demoJoin">
+            <div class="scan-area soft-inset" id="scanArea">
+              <div class="scan-rings" aria-hidden="true"><span></span><span></span><span></span></div>
+              <p class="scan-text" id="scanText">Skanowanie pokazowych siatek…</p>
+            </div>
+            <div class="found-list" id="foundList"></div>
+          </div>
+
+          <div id="nativeJoin" hidden>
+            <p class="join-instructions">
+              Poproś hosta o zaproszenie <strong>MR1:</strong> i wklej je poniżej. Android poprosi o zgodę
+              na dołączenie do chronionej sieci Wi‑Fi. SSID i hasło są zakodowane w zaproszeniu.
+            </p>
+            <label class="field">
+              <span class="field__label">Zaproszenie od hosta</span>
+              <textarea class="input soft-inset invite-input" id="inviteInput" rows="4"
+                placeholder="MR1:…" autocomplete="off" spellcheck="false"></textarea>
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Twoja nazwa w siatce</span>
+            <input class="input soft-inset" id="joinNameInput" type="text" maxlength="20"
+              placeholder="np. Ola" autocomplete="off" />
+          </label>
+          <button class="btn btn--primary btn--pill btn--lg btn--block" data-action="join-invite"
+            id="joinInviteBtn" hidden>Dołącz z zaproszenia</button>
+          <div class="perm-note soft-inset">
+            <span aria-hidden="true">🔐</span>
+            <small id="joinPermNote">Dołączenie wymaga uprawnień Wi‑Fi i lokalizacji. Internet komórkowy można przetestować osobno za Twoją zgodą.</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Dashboard -->
+      <section class="view view--dash" data-view="dashboard" hidden>
+        <header class="dash-header">
+          <div class="dash-header__left">
+            <button class="icon-btn soft-btn" data-action="leave" aria-label="Opuść siatkę">
+              <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+            </button>
+            <div class="dash-header__titles">
+              <span class="dash-mesh-name" id="dashMeshName">MeshRouter</span>
+              <span class="dash-role" id="dashRole">członek</span>
+            </div>
+          </div>
+          <button class="icon-btn soft-btn" data-action="toggle-theme" aria-label="Przełącz motyw">
+            <span id="dashThemeIcon" aria-hidden="true">◐</span>
+          </button>
+        </header>
+        <div class="mode-strip" id="modeStrip" aria-live="polite">Tryb DEMO — wartości i urządzenia są symulowane</div>
+
+        <div class="gauge-wrap">
+          <div class="gauge soft-card" id="gaugeCard">
+            <svg class="gauge__svg" viewBox="0 0 200 200" id="gaugeSvg">
+              <circle class="gauge__track" cx="100" cy="100" r="84" />
+              <circle class="gauge__progress" cx="100" cy="100" r="84" id="gaugeProgress" />
+            </svg>
+            <div class="gauge__center">
+              <span class="gauge__value" id="gaugeValue">0</span>
+              <span class="gauge__unit" id="gaugeUnit">Mbps</span>
+              <span class="gauge__label" id="gaugeLabel">pokazowa prędkość</span>
+            </div>
+          </div>
+          <div class="gauge-stats">
+            <div class="stat soft-inset">
+              <span class="stat__k" id="statDownLabel">Pobieranie</span>
+              <span class="stat__v" id="statDown">0 Mbps</span>
+            </div>
+            <div class="stat soft-inset">
+              <span class="stat__k">Wysyłanie</span>
+              <span class="stat__v" id="statUp">0 Mbps</span>
+            </div>
+            <div class="stat soft-inset">
+              <span class="stat__k">Ping</span>
+              <span class="stat__v" id="statPing">0 ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mesh-details soft-card" id="meshDetails" hidden>
+          <div class="details-heading">
+            <span class="details-heading__icon" aria-hidden="true">⌁</span>
+            <div>
+              <strong>Sieć lokalna</strong>
+              <small id="detailsInfo">Przekaż zaproszenie drugiemu telefonowi</small>
+            </div>
+          </div>
+          <div class="detail-row"><span>SSID Wi‑Fi</span><strong id="detailSsid">—</strong></div>
+          <div class="detail-row" id="passwordRow"><span>Hasło Wi‑Fi</span><strong id="detailPassword">—</strong></div>
+          <div class="detail-row"><span>Strona informacyjna</span><strong id="detailIp">—</strong></div>
+          <p class="details-note">Android udostępnia lokalną sieć z hasłem. Nie zapewnia ona automatycznie internetu pozostałym aplikacjom.</p>
+          <button class="btn btn--primary btn--pill btn--block" data-action="share-invite" id="shareInviteBtn">Udostępnij zaproszenie</button>
+        </div>
+
+        <div class="test-card soft-card" id="testCard">
+          <div class="test-card__top">
+            <div>
+              <strong>Pomiar łączy</strong>
+              <small id="testHint">Uruchom test na każdym telefonie, aby porównać łącza.</small>
+            </div>
+            <span class="test-card__icon" aria-hidden="true">↗</span>
+          </div>
+          <button class="btn btn--ghost btn--pill btn--block" data-action="run-test" id="runTestBtn">Zmierz moje łącze (~1,3 MB danych)</button>
+          <button class="btn btn--ghost btn--pill btn--block" data-action="test-relay" id="testRelayBtn" hidden>Sprawdź przekaźnik do hosta (~128 KB)</button>
+          <p class="test-result" id="testResult" hidden></p>
+        </div>
+
+        <div class="gateway-card soft-card" id="gatewayCard">
+          <div class="gateway-card__badge" aria-hidden="true">★</div>
+          <div class="gateway-card__body">
+            <span class="gateway-card__label" id="gatewayLabel">Sugerowany przekaźnik — złoty środek</span>
+            <strong class="gateway-card__name" id="gatewayName">—</strong>
+            <span class="gateway-card__why" id="gatewayWhy">Wybieram najlepszy balans…</span>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h3 class="section-title">Połączone urządzenia</h3>
+          <span class="section-count soft-chip" id="deviceCount">0</span>
+        </div>
+
+        <ul class="device-list" id="deviceList"></ul>
+
+        <div class="dash-footer">
+          <button class="btn btn--ghost btn--pill" data-action="share-invite" id="footerShareBtn">
+            <span class="btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v13M8 7l4-4 4 4" /></svg>
+            </span>
+            Zaproś znajomych
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-layer" id="toastLayer" aria-live="polite"></div>
+
+    <!-- Modal (leave confirm) -->
+    <div class="modal-backdrop" id="modalBackdrop" hidden>
+      <div class="modal soft-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h3 id="modalTitle" class="modal__title">Opuścić siatkę?</h3>
+        <p class="modal__text" id="modalText">Rozłączysz się z MeshRouterem.</p>
+        <div class="modal__actions">
+          <button class="btn btn--ghost btn--pill" data-modal="cancel">Anuluj</button>
+          <button class="btn btn--danger btn--pill" data-modal="confirm">Opuść</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
